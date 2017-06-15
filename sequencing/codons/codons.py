@@ -20,9 +20,9 @@ C = ['UGU', 'UGC']
 R = ['CGU', 'CGC', 'CGA', 'CGG', 'AGA', 'AGG']
 G = ['GGU', 'GGC', 'GGA', 'GGG']
 
-codonTableBaseU = {'F': F, 'L': L, 'I': I, 'M': M, 'V': V, 'S': S, 'P': P, 'T': T,
-                   'A': A, 'Y': Y, 'W': W, 'H': H, 'Q': Q, 'N': N, 'K': K,
-                   'D': D, 'E': E, 'C': C, 'R': R, 'G': G}
+codonTableBaseU = {'F': F, 'L': L, 'I': I, 'M': M, 'V': V, 'S': S, 'P': P,
+                   'T': T, 'A': A, 'Y': Y, 'W': W, 'H': H, 'Q': Q, 'N': N,
+                   'K': K, 'D': D, 'E': E, 'C': C, 'R': R, 'G': G}
 # Swapped Bases
 F = ['TTT', 'TTC']
 L = ['TTA', 'TTG', 'CTT', 'CTC', 'CTA', 'CTG']
@@ -44,6 +44,6 @@ E = ['GAA', 'GAG']
 C = ['TGT', 'TGC']
 R = ['CGT', 'CGC', 'CGA', 'CGG', 'AGA', 'AGG']
 G = ['GGT', 'GGC', 'GGA', 'GGG']
-codonTableBaseT = {'F': F, 'L': L, 'I': I, 'M': M, 'V': V, 'S': S, 'P': P, 'T': T,
-                   'A': A, 'Y': Y, 'W': W, 'H': H, 'Q': Q, 'N': N, 'K': K,
-                   'D': D, 'E': E, 'C': C, 'R': R, 'G': G}
+codonTableBaseT = {'F': F, 'L': L, 'I': I, 'M': M, 'V': V, 'S': S, 'P': P,
+                   'T': T, 'A': A, 'Y': Y, 'W': W, 'H': H, 'Q': Q, 'N': N,
+                   'K': K, 'D': D, 'E': E, 'C': C, 'R': R, 'G': G}
