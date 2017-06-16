@@ -1,4 +1,6 @@
 from codons.codons import codonTableBaseT, codonTableBaseU
+import sys
+
 
 # read in a sequence, make sure it is uppercase and whitespace stripped
 # TODO: Ask keven if files come in formated: they do!
@@ -8,9 +10,8 @@ def readSequence(sequence):
     sequence = sequence.strip().upper()
     return sequence
 
+
 # Swap T to U and vise versa if needed
-
-
 def swapBase(sequence, toSwap="U"):
     if toSwap == "T":
         return sequence.replace("U", "T")
@@ -19,6 +20,7 @@ def swapBase(sequence, toSwap="U"):
     else:
         return "Invalid toSwap: Use T or U"
 
+
 # get the list of codons that make the protien
 # sort it so that the input has the first pairs
 # first. Assume you're given 6 codons.
@@ -26,8 +28,10 @@ def swapBase(sequence, toSwap="U"):
 # mer = number of codons. leave at 6 for now
 # refactor later.
 # Returns a dictionary of said pairs.
-
-
+# Example:
+# input: s = 'ATTACG'
+# getTableIdx(s)
+# output: [{'I': ['ATT', 'ATC', 'ATA']}, {'T': ['ACT', 'ACC', 'ACA', 'ACG']}]
 def getTableIdx(sequence, base="T", mer=6):
     # Get codon table
     codonTable = None
@@ -39,6 +43,7 @@ def getTableIdx(sequence, base="T", mer=6):
     # Initialize variables
     startCodons = [sequence[:3], sequence[3:]]
     amino1, amino2 = {}, {}
+    key1, key2 = None, None
     assigned = 0
     for i in codonTable:
         if assigned == 2:
@@ -46,20 +51,49 @@ def getTableIdx(sequence, base="T", mer=6):
         if startCodons[0] in codonTable[i]:
             amino1[i] = codonTable[i]
             assigned += 1
+            key1 = i
         elif startCodons[1] in codonTable[i]:
             amino2[i] = codonTable[i]
             assigned += 1
-    return amino1, amino2
+            key2 = i
+    return [amino1, amino2, key1, key2]
+
 
 # return the value in a output file
-
-
 def CreateSixMer(sequence):
-    pass
+    # Prepare the sequence
+    sequence = readSequence(sequence)
+    # set original so that the first element in the list is
+    # the original sequence
+    original_sequence = sequence
+    sequence = getTableIdx(sequence)
+    # get sets of codons
+    list1, list2 = sequence[0][sequence[2]], sequence[1][sequence[-1]]
+    cross = [original_sequence]
+    # Cross product
+    for i in list1:
+        for j in list2:
+            pair = i + j
+            if pair == original_sequence:
+                continue
+            else:
+                cross.append(pair)
+    return cross
 
+
+# Return output into a file
+def writeLog(writer, sequence_list):
+    for i in sequence_list:
+        print(i)
 
 if __name__ == '__main__':
-    s = "AUU"
-    t = "ATTACG"
-    s = readSequence(s)
-    print(getTableIdx(t))
+
+    seq = CreateSixMer("AAACCC")
+    writeLog(sys.stdout, seq)
+    # s = "AUU"
+    # t = "ATAACG"
+    # s = readSequence(s)
+    # t = readSequence(t)
+    # two = getTableIdx(t)
+    # print(t)
+    # print(two)
