@@ -1,14 +1,7 @@
 from codons.codons import codonTableBaseT, codonTableBaseU
-import sys
 
 
-# read in a sequence, make sure it is uppercase and whitespace stripped
 # TODO: Ask keven if files come in formated: they do!
-
-
-def readSequence(sequence):
-    sequence = sequence.strip().upper()
-    return sequence
 
 
 # Swap T to U and vise versa if needed
@@ -81,15 +74,9 @@ def CreateSixMer(sequence):
     return cross
 
 
-# Return output into a file
-def writeLog(writer, sequence_list):
-    for i in sequence_list:
-        print(i)
-
 if __name__ == '__main__':
 
-    seq = CreateSixMer("AAACCC")
-    writeLog(sys.stdout, seq)
+    seq = CreateSixMer("ATGACC")
     # s = "AUU"
     # t = "ATAACG"
     # s = readSequence(s)
