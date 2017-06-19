@@ -11,7 +11,8 @@ def readSequence(sequence):
 
 
 # Swap T to U and vise versa if needed
-def swapBase(sequence, toSwap="U"):
+def swapBase(sequence, toSwap="T"):
+    toSwap = toSwap.upper()
     if toSwap == "T":
         return sequence.replace("U", "T")
     elif toSwap == "U":
@@ -51,21 +52,30 @@ def getTableIdx(sequence, base="T", mer=6):
             amino1[i] = codonTable[i]
             assigned += 1
             key1 = i
+            if startCodons[1] in codonTable[i]:
+                amino2[i] = codonTable[i]
+                assigned += 1
+                key2 = i
         elif startCodons[1] in codonTable[i]:
             amino2[i] = codonTable[i]
             assigned += 1
             key2 = i
+            if startCodons[0] in codonTable[i]:
+                amino1[i] = codonTable[i]
+                assigned += 1
+                key1 = i
     return [amino1, amino2, key1, key2]
 
 
 # return the value in a output file
-def CreateSixMer(sequence):
-    # Prepare the sequence
-    sequence = readSequence(sequence)
+# Create a sixmer cross product
+# input: a sequence of length 6
+def CreateSixMer(sequence, base="T"):
     # set original so that the first element in the list is
     # the original sequence
     original_sequence = sequence
-    sequence = getTableIdx(sequence)
+    sequence = getTableIdx(sequence, base)
+
     # get sets of codons
     list1, list2 = sequence[0][sequence[2]], sequence[1][sequence[-1]]
     cross = [original_sequence]
@@ -82,7 +92,8 @@ def CreateSixMer(sequence):
 
 if __name__ == '__main__':
 
-    seq = CreateSixMer("ATGACC")
+    seq = CreateSixMer("ACCACC")
+
     # s = "AUU"
     # t = "ATAACG"
     # s = readSequence(s)

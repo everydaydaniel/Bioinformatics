@@ -1,5 +1,3 @@
-import argparse
-import sys
 
 
 # Sequence reading module. Use to prepare strings for AcidToDNA
@@ -28,27 +26,47 @@ def readFile(infile, outfile):
     # ===============
 
 
+# TODO Rename this and refactor it later \
+# input: entire sequence
+def getsubsequence(sequence):
+
+    print(sequence)
+
+    # Get sequences of length six to create the six-mer combinations
+    for i in range(len(sequence)):
+        if i + 6 > len(sequence):
+            break
+        else:
+            print("Previous: {},len of previous: {}".format(sequence[:i], len(sequence[:i])))
+            print("current: {} ".format(sequence[i:i + 6]))
+            print("Procededing: {},len of procededing: {}".format(
+                sequence[i + 3:], len(sequence[i + 6:])))
+            print("REPLACED: {}XXXXXX{}\n\n".format(sequence[:i], sequence[i + 6:]))
+
+
 def main():
-    # parse arguments.
-    parser = argparse.ArgumentParser(description="Set infiles and settings.")
-    parser.add_argument('-i', "--infile", required=True,
-                        type=argparse.FileType('r'), metavar='', dest="infile",
-                        help="Infile that contains a sequence.")
-
-    parser.add_argument('-o', "--outfile", type=argparse.FileType('w'),
-                        metavar='', dest="outfile",
-                        help="Outfile to write results into. If no name is given defualt will\
-                        be <infile>.out.txt")
-    args = parser.parse_args()
-
-    # if no outfile is given, set it to infile.out
-    try:
-        outfile = args.outfile.name
-    except AttributeError as e:
-        name = args.infile.name.split('.')
-        outfile = name[0] + ".out"
-
-    print(readFile(args.infile.name, outfile))
+    # # parse arguments.
+    # # ==========================================================================
+    # parser = argparse.ArgumentParser(description="Set infiles and settings.")
+    # parser.add_argument('-i', "--infile", required=True,
+    #                     type=argparse.FileType('r'), metavar='', dest="infile",
+    #                     help="Infile that contains a sequence.")
+    #
+    # parser.add_argument('-o', "--outfile", type=argparse.FileType('w'),
+    #                     metavar='', dest="outfile",
+    #                     help="Outfile to write results into. If no name is given defualt will\
+    #                     be <infile>.out.txt")
+    # args = parser.parse_args()
+    #
+    # # if no outfile is given, set it to infile.out
+    # try:
+    #     outfile = args.outfile.name
+    # except AttributeError as e:
+    #     name = args.infile.name.split('.')
+    #     outfile = name[0] + ".out"
+    # # ==========================================================================
+    # def subsets(sequence):
+    pass
 
 
 if __name__ == '__main__':
