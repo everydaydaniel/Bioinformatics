@@ -1,7 +1,13 @@
 from codons.codons import codonTableBaseT, codonTableBaseU
 
 
+# read in a sequence, make sure it is uppercase and whitespace stripped
 # TODO: Ask keven if files come in formated: they do!
+
+
+def readSequence(sequence):
+    sequence = sequence.strip().upper()
+    return sequence
 
 
 # Swap T to U and vise versa if needed
