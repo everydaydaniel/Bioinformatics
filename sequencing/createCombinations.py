@@ -43,9 +43,10 @@ def main():
             itr_num = 0
             for six_mer in temp:
                 itr_num += 1
-                new_sequence = "{}{}{}".format(sequence[:i], six_mer, sequence[i + 6:])
+                # new_sequence = "{}{}{}".format(sequence[:i], six_mer, sequence[i + 6:])
                 print("{}:{}\n{}".format(start_idx, itr_num, six_mer))
             print()
+
 
 if __name__ == '__main__':
     main()
