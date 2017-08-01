@@ -3,6 +3,7 @@ import re
 import pickle
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
+from matplotlib.font_manager import FontProperties
 from math import isnan
 
 
@@ -14,8 +15,8 @@ from math import isnan
 
 
 # Serialization functions
-def toPickle(dictionary):
-    with open("SupplementaryDict.pickle", 'wb') as handle:
+def toPickle(dictionary, outfile):
+    with open("{}.pickle".format(outfile), 'wb') as handle:
         pickle.dump(dictionary, handle, protocol=pickle.HIGHEST_PROTOCOL)
         handle.close()
 
@@ -42,6 +43,20 @@ def addToDict(key, aDict, ranges, sRNA=None, length=None):
             raise Exception("sRNA is different")
         for i in ranges:
             aDict[key]["ranges"].append(i)
+
+
+def addToRNADict(key, aDict, sRNA=None, sequence=None):
+    # values are contained in a list to be able to add
+    # multiple values to each key
+    # store the length as a primary value since it would be redundandant
+    # to store it for each key molecule
+    if key not in aDict:
+        aDict[key] = {"sequence": sequence, "sRNA": sRNA}
+    else:
+        # ERror check sRNA
+        if aDict[key]['sRNA'] != sRNA:
+            print(aDict[key]['sRNA'], sRNA)
+            raise Exception("sRNA is different")
 
 
 def checkDictKey(key, dictionary):
@@ -74,15 +89,27 @@ def stringToList(string):
 def stringToFloat(string):
     try:
         return float(string)
-    except Exception as e:
+    except Exception:
         return None
 
+
+# Swap T to U and vise versa if needed
+def swapBase(sequence, toSwap="T"):
+    toSwap = toSwap.upper()
+    if toSwap == "T":
+        return sequence.replace("U", "T")
+    elif toSwap == "U":
+        return sequence.replace("T", "U")
+    else:
+        return "Invalid toSwap: Use T or U"
 
 # CSV reading functions
 # CSV Read for supp TABLE
 # Want to make this into a dictionary
 # returns a dictionary, Example:
 # {65: {'length': 90, 'sRNA': 'ryhB', 'ranges': [[43,68], [9,50]]}}
+
+
 def readSuppCSV(infile):
     # initialize dictionary
     reference_dict = dict()
@@ -131,6 +158,27 @@ def readSuppCSVRAW(infile):
     return reference_dict
 
 
+def readSuppCSV_RNA(infile):
+    # initialize dictionary
+    reference_dict = dict()
+    # bring in CSV file and read
+    with open(infile, 'r') as csvfile:
+        readCSV = csv.reader(csvfile, delimiter=',')
+        # Skip Header
+        readCSV.__next__()
+        for row in readCSV:
+            # set up wanted columns
+            moleculeNum, sRNA, sequence = row[0], row[1], row[2]
+            if not moleculeNum.strip():
+                continue
+            try:
+                addToRNADict(int(moleculeNum), reference_dict, sRNA, swapBase(sequence, "U"))
+            except ValueError:
+
+                addToRNADict(int(moleculeNum), reference_dict, sRNA, swapBase(sequence, "U"))
+    return reference_dict
+
+
 def readHeatMap(infile):
     # Yield results so you can perform operations else where
     with open(infile, 'r') as csvfile:
@@ -164,80 +212,88 @@ def isInRange(ranges, ref_ranges):
     return False
 
 
-def getLoaction(ranges, length):
+def isInPercent(ranges, ref_ranges):
+    Rx, Ry = ranges[0], ranges[1]
+    rangesList = list(range(Rx, Ry + 1))
+    total = len(rangesList)
+    for subRange in ref_ranges:
+        Ref_x, Ref_y = subRange[0], subRange[1]
+        subRangeList = list(range(Ref_x, Ref_y + 1))
+        # count the number of values in the ranges list that is in the
+        # sub ranges list
+        num_in_ref = 0
+        for val in rangesList:
+            if val in subRangeList:
+                num_in_ref += 1
+
+        if (num_in_ref / total) >= .8:
+
+            return True
+
+    return False
+
+
+def getLocation(ranges, length):
     a, b = ranges[0], ranges[1]
     midPoint = (a + b) / 2
     position = midPoint / length
     return position
 
 
-def plotData(data1, data2):
+def plotData(data1, data2, figure_name):
 
-    plt.scatter(*zip(*data1), label="Accessible")
-    #plt.scatter(*zip(*data2), label="Not Accessible", color='r')
+    plt.scatter(*zip(*data1), label="100{} contained within binding region".format("%"))
+    plt.scatter(*zip(*data2), label="Not contained".format("%"), color='r')
     plt.xlabel("Position")
     plt.ylabel("Accessibility")
-    plt.title("Accessible")
     plt.ylim([0, 1])
     plt.xlim([0, 1])
-    # plt.legend()
+    fontP = FontProperties()
+    fontP.set_size('small')
+    plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
     plt.gca().xaxis.set_major_locator(MaxNLocator(prune='lower'))
-    plt.savefig("figure_1.png", dpi=300)
+    plt.savefig("{}.png".format(figure_name), dpi=300, bbox_inches="tight")
 
 
-def createCSV(outfile, data):
+def listToStr(values):
+    string = ''
+    for value in values:
+        string += str(value) + ","
+    return string
+
+
+def createCSV(outfile, data, header):
+    with open("{}.csv".format(outfile), 'w') as csv_file:
+        # Write Header
+        print(header)
+        print(header[:-1])
+        csv_file.write(header)
+        for line in data:
+            if isinstance(line, list):
+                line = listToStr(line)
+            print(line)
+            csv_file.write(line)
+            csv_file.write('\n')
+
+
+def createAllCSV(outfile, data):
     with open("{}.csv".format(outfile), 'w') as csv_file:
         # Write Header
         header = "molecule number,sRNA, accessibility, interacting site, \
-        supplementary table interacting nucleotides\n"
+        is 80 percent within binding region, supplementary table interacting nucleotides\n"
         csv_file.write(header)
         for line in data:
             csv_file.write(line)
             csv_file.write('\n')
 
 
-def main():
+def countBindingRegions(ref_dict):
+    num_regions = 0
+    for i in ref_dict:
+        regions = len(ref_dict[i]["ranges"])
+        num_regions += regions
+    return num_regions
 
-    # # Pickling
-    raw_dict = readSuppCSVRAW("supp_table_new.csv")
-    # toPickle(new_dict)
-    isAccesable = []
-    notAccesable = []
-    accessCSV = []
-    noAccessCSV = []
-    ref_dict = getPickle('SupplementaryDict.pickle')
-    heat = readHeatMap("google_heat_map.csv")
-    accesCount, notAccesCount = 0, 0
-    for i in heat:
-        num, access, interacting = i[0], i[1], i[2]
-
-        if not checkDictKey(num, ref_dict):
-            notAccesCount += 1
-            position = getLoaction(interacting, raw_dict[num]["length"])
-            notAccesable.append((position, access))
-            # Molecule number, accesisbility, interacting, supp table interacting sites
-            noAccessCSV.append("{},{},{},{},{}".format(
-                num, raw_dict[num]["sRNA"], access, str(interacting).replace(",", "-"), str(raw_dict[num]["ranges"]).replace(",", "-")))
-            continue
-        if isInRange(interacting, ref_dict[num]["ranges"]):
-            accesCount += 1
-            length = ref_dict[num]["length"]
-            position = getLoaction(interacting, length)
-            isAccesable.append((position, access))
-            # Molecule number, accesisbility, interacting, supp table interacting sites
-            accessCSV.append("{},{},{},{},{}".format(
-                num, raw_dict[num]["sRNA"], access, str(interacting).replace(",", "-"), str(raw_dict[num]["ranges"]).replace(",", "-")))
-        else:
-            notAccesCount += 1
-            # Molecule number, accesisbility, interacting, supp table interacting sites
-            noAccessCSV.append("{},{},{},{},{}".format(
-                num, raw_dict[num]["sRNA"], access, str(interacting).replace(",", "-"), str(raw_dict[num]["ranges"]).replace(",", "-")))
-    # print("accesable: {}  not Accesable: {}".format(accesCount, notAccesCount))
-#    print(notAccesable)
-    #plotData(isAccesable, notAccesable)
-    createCSV("accesisbility_data", accessCSV)
-    createCSV("no_accesibility_data", noAccessCSV)
-    print(accesCount, notAccesCount)
 
 if __name__ == '__main__':
-    main()
+    pass
