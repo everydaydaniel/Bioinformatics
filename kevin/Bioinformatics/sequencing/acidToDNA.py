@@ -61,25 +61,20 @@ def swapBase(sequence, toSwap="T"):
 # input: s = 'ATTACG'
 # getTableIdx(s)
 # output: [{'I': ['ATT', 'ATC', 'ATA']}, {'T': ['ACT', 'ACC', 'ACA', 'ACG']}]
-def getTableIdx(sequence, base="U", mer=6):
-    # delete print("inside getTableIdx")
-    # delete print("sequence being analized in getTableIdx: {}".format(sequence))
+def getTableIdx(sequence, base="U"):
+
     # Get codon table
     codonTable = None
     if base == "T":
         codonTable = codonTableBaseT
-        # delete print("using baseT table")
     else:
         codonTable = codonTableBaseU
-        # delete print("using baseU table")
 
     # Initialize variables
     startCodons = [sequence[:3], sequence[3:]]
     amino1, amino2 = {}, {}
     key1, key2 = None, None
     assigned = 0
-    # delete print("startCodons = [sequence[:3], sequence[3:]]: ", startCodons)
-    # delete print(codonTable)
     for i in codonTable:
         if assigned == 2:
             break
@@ -106,17 +101,11 @@ def getTableIdx(sequence, base="U", mer=6):
 # Create a sixmer cross product
 # input: a sequence of length 6
 def CreateSixMer(sequence, base="U"):
-    # delete print("inside CreateSixMer")
     # set original so that the first element in the list is
     # the original sequence
     original_sequence = sequence
-    # delete print("going into getTableIdx")
     sequence = getTableIdx(sequence, base)
-    # delete print("exit getTableIdx")
-    # delete print("getTableIdx value: {} original sequence: {}".format(sequence, original_sequence))
-    # delete print("Contains stop codon: {}".format(containsStopCodon(original_sequence, sequence)))
 
-    # delete print("check for stop codon")
     if containsStopCodon(original_sequence, sequence):
         raise StopIteration
 
@@ -134,10 +123,47 @@ def CreateSixMer(sequence, base="U"):
     return cross
 
 
+# takes in a seq and substitue the middle codon, the input should always be
+# divisable by 3
+# input is a len = 200-mer sequence but try to do for N-mer
+# returns a list of sequences with the middle codon replaced
+def substitue_N_Mer(sequence, base="U"):
+    try:
+        original_seq = sequence
+        length = len(original_seq)
+        insert_position = length // 2
+        # slice the seq
+        start, middle, end = original_seq[:insert_position - 3], original_seq[insert_position -3: insert_position], original_seq[insert_position:]
+        # get the codon substitiutions
+        codons_list = getTableIdx(middle)
+        codons , key = codons_list[0], codons_list[-2]
+        print(len(sequence))
+        print(middle)
+        # initialize data list
+        sequences = [original_seq]
+        for codon in codons[key]:
+            # continue because we already added the original sequence
+            if codon == middle:
+                continue
+            mutation_sequence = "{}{}{}".format(start, codon, end)
+            sequences.append(mutation_sequence)
+
+        return sequences
+
+
+    except Exception as e:
+        raise
+
+
+
+
+
+
+
 if __name__ == '__main__':
     createPickledDict('codonTableBaseT', codonTableBaseT)
     createPickledDict('codonTableBaseU', codonTableBaseU)
-    seq = CreateSixMer("ACCACC")
+    seq = substitue_N_Mer()
     print(seq)
     # s = "AUU"
     # t = "ATAACG"

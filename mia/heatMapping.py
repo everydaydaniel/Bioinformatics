@@ -265,13 +265,10 @@ def listToStr(values):
 def createCSV(outfile, data, header):
     with open("{}.csv".format(outfile), 'w') as csv_file:
         # Write Header
-        print(header)
-        print(header[:-1])
         csv_file.write(header)
         for line in data:
             if isinstance(line, list):
                 line = listToStr(line)
-            print(line)
             csv_file.write(line)
             csv_file.write('\n')
 

@@ -1,4 +1,4 @@
-# simple calculations are defined in this module for readability
+# simple calculations are defined in this module.
 
 
 def deltaDiff(wildType, current):
@@ -6,7 +6,7 @@ def deltaDiff(wildType, current):
 
 
 def energyDiff(wildType, current):
-    return wildType - current
+    return current - wildType
 
 
 # filter out values and return those that have the max aboslute
@@ -27,9 +27,9 @@ def getEnergyDiff(setOfValues):
 # difference values
 # wildType = wildTypeEnergy from mfe lookup table
 # set of values = all different codon mutaions and they're mfe values
-# returns: ((maxDeltaDiff), [max_energy_differnece_values])
+# returns: ((maxDeltaDiff), [max_energy_difference_values])
 # (maxDeltaDiff) = (sequence, deltadiff, energydiff)
-# [max_energy_differnece_values] = [(sequence, delatadiff, energydiff)]
+# [max_energy_difference_values] = [(sequence, delatadiff, energydiff)]
 def get_energy_values(wildType, setOfValues):
     # all are positive values
     deltaDiff_values = []
@@ -39,16 +39,16 @@ def get_energy_values(wildType, setOfValues):
                                  energyDiff(wildType, current)))
 
     max_deltaDiff_value = max(deltaDiff_values, key=lambda x: x[1])
-#    print("get energy diff: {}".format(getEnergyDiff(deltaDiff_values)))
-    max_energy_differnece_values = getEnergyDiff(deltaDiff_values)
-    return (max_deltaDiff_value, max_energy_differnece_values)
+    max_energy_difference_values = getEnergyDiff(deltaDiff_values)
+    # need this for get signs later, don't need the first value because it is not a mutation
+    energy_difference_values = deltaDiff_values[1:]
+    return (max_deltaDiff_value, max_energy_difference_values, energy_difference_values)
 
 
 # this function will give us the number of positive, negative and zero values
 # returns (positive, negative, zero)
 def getSigns(setOfValues):
     positive, negative, zero = 0, 0, 0
-#    print("values used in getSigns: {}".format(setOfValues))
     for value in setOfValues:
         if value[-1] == 0:
             zero += 1

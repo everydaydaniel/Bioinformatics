@@ -143,22 +143,26 @@ def main():
         "./csv_files/not_100_percent_contained_specs_included.csv", interacting_dict)
 
     os.chdir(path_to_dir)
-
+    fileCount = 0
+    print(os.listdir())
     for fname in os.listdir("."):
+        fileCount += 1
         name, ext = os.path.splitext(fname)
         if isHiddenFile(fname, ext):
             continue
         key_name = getName(name.split("_"))
         if not check_key(key_name, hotspot_dict):
+            print(key_name,"failed key")
             continue
-        data = csv_read(fname, key_name, hotspot_dict, overlap=5)
+        data = csv_read(fname, key_name, hotspot_dict, overlap=0)
         filename = "{}_hotspot_analysis".format(name)
         header = "id1,start1,end1,id2,start2,end2,subseqDP,hybridDP,E,current range,matched range,position,accessibility\n"
         current_dir = os.getcwd()
-        os.chdir("../inta_rna_results")
+        os.chdir("../inta_rna_results_raw_no_overlap")
         createCSV("{}".format(filename), data, header)
+        print(filename)
         os.chdir(current_dir)
     print(count)
-
+    print(fileCount)
 if __name__ == '__main__':
     main()

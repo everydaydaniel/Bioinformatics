@@ -78,6 +78,14 @@ def randomSample(mfeDict):
         count += 1
     return randomList
 
+def getZeros(mfeDict):
+    zerosList = []
+    for i in mfeDict:
+        if mfeDict[i] == 0.0 or mfeDict[i] == 0:
+            zerosList.append((mfeDict[i],i))
+            continue
+    return zerosList
+
 
 # Serialize the dict to a pickle file for later use.
 def createPickledDict(mfeDict):
@@ -92,6 +100,8 @@ def createDict(pickleFile):
 
 def main():
     pass
+    # mfeDictionary = createDict("./mfeDict.pickle")
+    # print(getZeros(mfeDictionary))
     # # os.chdir("./analysis/nupackmfe")
     # mfeDict = generateDict("./nupackmfe")
     # max_values = getMaxVals(mfeDict)
