@@ -126,19 +126,25 @@ def CreateSixMer(sequence, base="U"):
 # takes in a seq and substitue the middle codon, the input should always be
 # divisable by 3
 # input is a len = 200-mer sequence but try to do for N-mer
-# returns a list of sequences with the middle codon replaced
+# return a dictionary with the following keys:
+# { sequences: [list of sequences],
+#   wildtype: "center codon",
+#   codons: [list of codon mutations]}
 def substitue_N_Mer(sequence, base="U"):
     try:
+
         original_seq = sequence
         length = len(original_seq)
         insert_position = length // 2
         # slice the seq
-        start, middle, end = original_seq[:insert_position - 3], original_seq[insert_position -3: insert_position], original_seq[insert_position:]
+        # middle is the original center codon
+        start, middle, end = original_seq[
+            :insert_position - 3], \
+            original_seq[insert_position - 3: insert_position],\
+            original_seq[insert_position:]
         # get the codon substitiutions
         codons_list = getTableIdx(middle)
-        codons , key = codons_list[0], codons_list[-2]
-        print(len(sequence))
-        print(middle)
+        codons, key = codons_list[0], codons_list[-2]
         # initialize data list
         sequences = [original_seq]
         for codon in codons[key]:
@@ -148,16 +154,10 @@ def substitue_N_Mer(sequence, base="U"):
             mutation_sequence = "{}{}{}".format(start, codon, end)
             sequences.append(mutation_sequence)
 
-        return sequences
-
+        return {"sequences": sequences, "wildtype": middle, "codons": codons}
 
     except Exception as e:
         raise
-
-
-
-
-
 
 
 if __name__ == '__main__':
