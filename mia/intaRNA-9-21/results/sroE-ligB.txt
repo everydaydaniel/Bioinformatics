@@ -1,0 +1,14 @@
+
+ligB
+           158        167
+             |        |
+5'-GGC...UUUC          AUAU...GAA-3'
+             AUCACGUUGU
+             ||||||||:|
+             UAGUGCAAUA
+3'-UAU...AGGG          -5'
+             |        |
+            10        1
+sroE
+
+interaction energy = -6.22105 kcal/mol

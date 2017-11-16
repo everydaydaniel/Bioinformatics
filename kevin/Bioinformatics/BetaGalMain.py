@@ -4,6 +4,7 @@ import sequencing.sequenceReading as sequenceReading
 import sequencing.acidToDNA as acidToDNA
 import analysis.generate_csv as csv_gen
 
+
 # python 3
 # SETUP GLOBALS
 # afinity_lookup is the lookup table for mfe/afinity values
@@ -22,6 +23,7 @@ sequence: either .txt or input, base: either U or T, output filename: self
 explanatory, step size/mer-size: here it gets tricky, might want to have a
 6-mer analysis script and a separate n-mer script to prepare data.
 '''
+
 
 def main():
     # Read BetaGal.txt and swap base to U bc RNA
@@ -89,6 +91,7 @@ def main():
         # for future refenernce, get output file name and print location of the
         # csv file.
         print("done.")
+
 
 if __name__ == '__main__':
     main()

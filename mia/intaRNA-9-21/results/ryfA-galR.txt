@@ -1,0 +1,14 @@
+
+galR
+           201                                                                                                        300
+             |                                                                                                        |
+5'-AGC...AUUU               AAAG     A       C           UCAGU     AC     CC  C     UAAUA    A    C          AAGCUU    GCUG...AAU-3'
+             UCAUGGCG  ACCAU    GAUGU GCC CGA UGGCAGGCGUU      CGCC  CGUUU  CG GUCAU     AUUC   CC AAAGCCAGCG      CCCG
+             |||:|:|:  ||||:    |||:| ||| ||| |:|||:|||:|      |:||  |:|||  || |:||:     ||:|   || ||||||||||      ||||
+             AGUGCUGU  UGGUG    CUAUA CGG GCU AUCGUUCGCGA      GUGG  GUAAA  GC CGGUG     UAGG   GG UUUCGGUCGC      GGGC
+3'-UUU...GCGU        CG     ACCG     A   C               CACUUU    AC     U         CCUUG    AAA  A                    AAAC...GCG-5'
+             |                                                                                                        |
+           122                                                                                                        26
+ryfA
+
+interaction energy = -17.2918 kcal/mol

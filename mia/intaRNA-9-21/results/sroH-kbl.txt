@@ -1,0 +1,14 @@
+
+kbl
+             1                                                         49
+             |                                                         |
+          5'-    A      C           G       A      U               A    CAGU...AUG-3'
+             UGGA UUUGCC UG UC UG GA AAUCGCA   UGCG GGA     GAAUUUU UCAG
+             :||| |||||| || :| || || |||||||   |||| |||     ||||||: ||||
+             GCCU AAACGG AC GG AC CU UUAGCGU   ACGC CCU     CUUAAAG AGUC
+3'-UUU...AAUG    G      A  U  A  G  A       CCA        ACAGA       A    AGAC...AAG-5'
+             |                                                         |
+           100                                                         43
+sroH
+
+interaction energy = -14.6371 kcal/mol

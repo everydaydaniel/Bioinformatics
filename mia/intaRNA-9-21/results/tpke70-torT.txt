@@ -1,0 +1,14 @@
+
+torT
+           205                                       244
+             |                                       |
+5'-CUU...AUGC   U      AUU     U              U       GGCA...GUG-3'
+             GCG ACUGCU   UUUAC UCUUUCCCUUUUCA GUU GCC
+             :|: ||||||   :|||| |||||||||::||| :|: |||
+             UGU UGACGA   GAAUG AGAAAGGGAGGAGU UAG CGG
+3'-CCG...AAAU   U                             U   C   UAUU...AAA-5'
+             |                                       |
+            65                                       29
+tpke70
+
+interaction energy = -25.233 kcal/mol

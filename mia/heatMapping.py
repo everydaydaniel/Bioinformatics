@@ -27,22 +27,28 @@ def getPickle(infile):
 
 
 # Dictionary functions
-def addToDict(key, aDict, ranges, sRNA=None, length=None):
+def addToDict(key, aDict, ranges, sRNA=None, length=None, mRNA_map=None):
     # values are contained in a list to be able to add
     # multiple values to each key
     # store the length as a primary value since it would be redundandant
     # to store it for each key molecule
+    # mRNA_map will be a tuple with the mRNA and the coreseponding range.
+    # NOTE: ranges is a loop because string to list adds the lists in a list
+    # sRNAs can have multiple interacting sites
     if key not in aDict:
         if not isinstance(length, int):
             raise Exception("Length is not an int.")
-        aDict[key] = {"length": length, "sRNA": sRNA, "ranges": [i for i in ranges]}
+        aDict[key] = {"length": length, "sRNA": sRNA,
+                      "mRNA": [mRNA_map], "ranges": [i for i in ranges]}
     else:
-        # ERror check sRNA
+        # Error check sRNA
         if aDict[key]['sRNA'] != sRNA:
-            print(aDict[key]['sRNA'], sRNA)
+            # print(aDict[key]['sRNA'], sRNA)
             raise Exception("sRNA is different")
         for i in ranges:
             aDict[key]["ranges"].append(i)
+        if mRNA_map not in aDict[key]["mRNA"]:
+            aDict[key]["mRNA"].append(mRNA_map)
 
 
 def addToRNADict(key, aDict, sRNA=None, sequence=None):
@@ -55,7 +61,7 @@ def addToRNADict(key, aDict, sRNA=None, sequence=None):
     else:
         # ERror check sRNA
         if aDict[key]['sRNA'] != sRNA:
-            print(aDict[key]['sRNA'], sRNA)
+            # print(aDict[key]['sRNA'], sRNA)
             raise Exception("sRNA is different")
 
 
@@ -120,18 +126,26 @@ def readSuppCSV(infile):
         readCSV.__next__()
         for row in readCSV:
             # set up wanted columns
-            moleculeNum, sRNA, length, interacting, = row[0], row[1], row[3], row[15]
+            moleculeNum, sRNA, length, interacting, mRNA = row[0], row[1], row[3], row[15], row[14]
             # exclude those that do not have interacting nucleotides
             # by checking if the cell is empty
             if not interacting.strip():
                 continue
+            # set the mRNA make, if it is not known make it not listed.
+            if not mRNA.strip() or mRNA == "??":
+                mRNA = "Not listed"
             try:
+                # print("Molecule Num: {} sRNA: {} mRNA: {}".format(moleculeNum, sRNA, mRNA))
                 length = int(length)
                 interacting = stringToList(interacting)
-                addToDict(int(moleculeNum), reference_dict, interacting, sRNA, length)
+                add_mRNA = (mRNA, interacting)
+                # print(add_mRNA)
+                addToDict(int(moleculeNum), reference_dict, interacting, sRNA, length, add_mRNA)
             except ValueError:
                 interacting = stringToList(interacting)
-                addToDict(int(moleculeNum), reference_dict, interacting, sRNA=sRNA, )
+                add_mRNA = (mRNA, interacting)
+                addToDict(int(moleculeNum), reference_dict,
+                          interacting, sRNA=sRNA, mRNA_map=add_mRNA)
     return reference_dict
 
 
@@ -207,12 +221,41 @@ def isInRange(ranges, ref_ranges):
     Rx, Ry = ranges[0], ranges[1]
     for subRange in ref_ranges:
         if Rx >= subRange[0] and Ry <= subRange[1]:
-
             return True
     return False
 
 
-def isInPercent(ranges, ref_ranges):
+# check if any of the ranges is exact with an mRNA
+def isExact(ranges, ref_ranges):
+    # print("input", ranges, ref_ranges, end=" ")
+    # check witch mRNA it is mapped to.
+    Rx, Ry = ranges[0], ranges[1]
+    return_string = ''
+    # print("{} in {}".format(ranges, ref_ranges))
+    for values in ref_ranges:
+        # print("values", values)
+        mRNA, subrange = values[0], values[1]
+        if len(subrange) == 1:
+            # check to see if the ranges are exact/or contained
+            if Rx == subrange[0][0] and Ry == subrange[0][1]:
+                # print("ranges being compared {},{} == {},{}".format(
+                #    Rx, Ry, subrange[0][0], subrange[0][1]))
+                return_string += "{}-EXACT;".format(mRNA)
+            else:
+                if isInRange(ranges, [subrange[0]]):
+                    return_string += "{};".format(mRNA)
+        else:
+            print(mRNA, subrange)
+            for value in subrange:
+                if Rx == value[0] and Ry == value[1]:
+                    return_string += "{}-EXACT;".format(mRNA)
+                else:
+                    if isInRange(ranges, [value]):
+                        return_string += "{};".format(mRNA)
+    return return_string
+
+
+def isInPercent(ranges, ref_ranges, percent=.8):
     Rx, Ry = ranges[0], ranges[1]
     rangesList = list(range(Rx, Ry + 1))
     total = len(rangesList)
@@ -226,7 +269,7 @@ def isInPercent(ranges, ref_ranges):
             if val in subRangeList:
                 num_in_ref += 1
 
-        if (num_in_ref / total) >= .8:
+        if (num_in_ref / total) >= percent:
 
             return True
 
@@ -294,3 +337,5 @@ def countBindingRegions(ref_dict):
 
 if __name__ == '__main__':
     pass
+    # ref_dict = readSuppCSV("./csv_files/supp_table_new.csv")
+    # toPickle(ref_dict, "supp_table_with_mRNA")

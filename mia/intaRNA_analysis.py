@@ -152,7 +152,7 @@ def main():
             continue
         key_name = getName(name.split("_"))
         if not check_key(key_name, hotspot_dict):
-            print(key_name,"failed key")
+            print(key_name, "failed key")
             continue
         data = csv_read(fname, key_name, hotspot_dict, overlap=0)
         filename = "{}_hotspot_analysis".format(name)

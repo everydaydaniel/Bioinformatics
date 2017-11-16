@@ -1,0 +1,14 @@
+
+pdxY
+            88       96
+             |       |
+5'-UGC...AGUC         UUAU...CAA-3'
+             UCACGUUGU
+             |||||||:|
+             AGUGCAAUA
+3'-UAU...GGGU         -5'
+             |       |
+             9       1
+sroE
+
+interaction energy = -6.29206 kcal/mol

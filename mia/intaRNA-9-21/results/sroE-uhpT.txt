@@ -1,0 +1,14 @@
+
+uhpT
+           170                                                           226
+             |                                                           |
+5'-UGC...AGCC      G         G     A  G    C   AAA            ACCGU       AUCC...CGA-3'
+             GACCCU GAC CUUCC CUCGA GU  CGG  GC   AUGU GGUUCAA     UCAUGCA
+             :||||| :|| ||||| |||:| ||  |||  ||   |||: |||||||     ||||:||
+             UUGGGA UUG GAAGG GAGUU CA  GCC  CG   UACG CCAAGUU     AGUAUGU
+3'-UAU...UUAC      G   C           A  AA   CU  G      C                   GCCC...AUA-5'
+             |                                                           |
+            83                                                           31
+sroE
+
+interaction energy = -7.30425 kcal/mol

@@ -1,0 +1,14 @@
+
+mrcA
+            55         65
+             |         |
+5'-AAC...GCAG           CUGC...CUG-3'
+             UCUGUUGCAUU
+             ||||:|||||:
+             AGACGACGUAG
+3'-UUU...AGUC           GACC...AAG-5'
+             |         |
+            42         32
+sroH
+
+interaction energy = -10.5254 kcal/mol

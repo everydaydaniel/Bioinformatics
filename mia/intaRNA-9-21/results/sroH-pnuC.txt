@@ -1,0 +1,14 @@
+
+pnuC
+            28                                       68
+             |                                       |
+5'-CGA...GCUU  G    AAGA              G   AGAA        UACA...GGC-3'
+             UG GGGA    UGGAUUUUUUUAGU UGC    UAUCCUGG
+             || ||||    ||:||||:||:||| |||    :|||||||
+             AC CCCU    ACUUAAAGAAGUCA ACG    GUAGGACC
+3'-UUU...UCCA  G    ACAG              G   AC          UUCU...AAG-5'
+             |                                       |
+            66                                       28
+sroH
+
+interaction energy = -17.6334 kcal/mol

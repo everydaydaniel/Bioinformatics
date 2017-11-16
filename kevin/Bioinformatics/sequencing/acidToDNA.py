@@ -130,7 +130,7 @@ def CreateSixMer(sequence, base="U"):
 # { sequences: [list of sequences],
 #   wildtype: "center codon",
 #   codons: [list of codon mutations]}
-def substitue_N_Mer(sequence, base="U"):
+def substitue_N_Mer(sequence, position, base="U"):
     try:
 
         original_seq = sequence
@@ -145,16 +145,20 @@ def substitue_N_Mer(sequence, base="U"):
         # get the codon substitiutions
         codons_list = getTableIdx(middle)
         codons, key = codons_list[0], codons_list[-2]
+        codons_list = []
         # initialize data list
         sequences = [original_seq]
         for codon in codons[key]:
             # continue because we already added the original sequence
             if codon == middle:
+                codons_list.append(codon)
                 continue
+            codons_list.append(codon)
             mutation_sequence = "{}{}{}".format(start, codon, end)
             sequences.append(mutation_sequence)
 
-        return {"sequences": sequences, "wildtype": middle, "codons": codons}
+        return {"sequences": sequences, "wildtype": middle, "codons": codons_list,
+                "position": position, "amino acid": key}
 
     except Exception as e:
         raise

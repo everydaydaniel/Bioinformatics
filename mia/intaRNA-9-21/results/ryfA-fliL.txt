@@ -1,0 +1,14 @@
+
+fliL
+           187                                                    235
+             |                                                    |
+5'-GAA...ACAG          ACA      U               A   AA   AA        AUCG...AGC-3'
+             GAAGACCGCA   CAUGAC G AUUAC  GCGAUA  GC   GA  AGCAAGCG
+             ||||||||||   ||:||| | |::||  ||||||  ||   ||  ||||||||
+             CUUCUGGCGU   GUGCUG C UGGUG  CGCUAU  CG   CU  UCGUUCGC
+3'-UUU...UACG          A        U G     AC      AA  GCG  A         GACA...GCG-5'
+             |                                                    |
+           132                                                    82
+ryfA
+
+interaction energy = -16.5469 kcal/mol

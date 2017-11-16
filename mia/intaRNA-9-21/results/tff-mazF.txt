@@ -1,0 +1,14 @@
+
+mazF
+           249                                                                   316
+             |                                                                   |
+5'-UAG...AAAA        AGAA    GACUGGGGA   G  G    AUAA  A G     U    GUAA          ACCC...GGU-3'
+             CCUCCACG    UAUC          GA CC AAAG    GG A UCUGG AAUG    GCCGAUACGU
+             ||||||||    ||||          || || ||||    || | :|:|| |||:    ||||||||||
+             GGAGGUGC    AUAG          CU GG UUUC    CC U GGGCC UUAU    CGGCUAUGCA
+   3'-CCAAUAC                GGUAUAAUGG  G  G          G G          ACA           CACA...GGC-5'
+             |                                                                   |
+           129                                                                   71
+tff
+
+interaction energy = -10.4907 kcal/mol

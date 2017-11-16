@@ -1,9 +1,7 @@
 import analysis.getAfinityValues as afinity
-from analysis.analyze import *
 import sequencing.sequenceReading as sequenceReading
 import sequencing.acidToDNA as acidToDNA
 import analysis.generate_csv as csv_gen
-import inspect
 
 
 afinity_lookup = afinity.mfeDictionary
@@ -12,7 +10,7 @@ afinity_lookup = afinity.mfeDictionary
 This script will prepare the sequence so that it can be used on tacc to
 submit sequencees to rna struct.
 Notes: the len range and everything else has to be calculated for N length
-sequences.
+sequences. header and filename should be a parameter.
 '''
 
 
@@ -48,8 +46,18 @@ def main():
             sub_seq = sequence[i - midpoint:i + midpoint]
             # returned dictionary:
             # { sequences: [list of sequences], wildtype: "wildtype",
-            # codons: [list of codon mutations] }
-            sub_seq_analysis = acidToDNA.substitue_N_Mer(sub_seq)
+            # codons: [list of codon mutations], position : int }
+            sub_seq_analysis = acidToDNA.substitue_N_Mer(sub_seq, i)
+            # we need to write this to a csv file that can be easily read
+            # and written into so we can write the results.
+            header = ["position", "wildtype", "amino acid", "condons", "sequences"]
+            position = sub_seq_analysis['position']
+            wildtype = sub_seq_analysis['wildtype']
+            amino = sub_seq_analysis['amino acid']
+            codons = csv_gen.listToString(sub_seq_analysis['codons'], delimiter=';')
+            sequences = csv_gen.listToString(sub_seq_analysis['sequences'], delimiter=';')
+            data = [position, wildtype, amino, codons, sequences]
+            csv_gen.writeToCSV("BetaGalPrep", data, header, delimiter=",")
 
     except Exception as e:
         raise

@@ -59,7 +59,7 @@ def newAnalysis():
     accesCount, notAccesCount = 0, 0
     for i in heat:
         num, access, interacting = i[0], i[1], i[2]
-
+        print(num)
         if not checkDictKey(num, ref_dict):
             notAccesCount += 1
             position = getLocation(interacting, raw_dict[num]["length"])
@@ -92,6 +92,7 @@ def newAnalysis():
 
 
 def allAccess():
+    # checks if the values are contained within the interacting points
     # # Pickling
     raw_dict = readSuppCSVRAW("csv_files/supp_table_new.csv")
     # toPickle(new_dict)
@@ -102,16 +103,26 @@ def allAccess():
     allAccessCSV = []
     hundred_percent_contained = []
     hundred_percent_not_contained = []
-    ref_dict = getPickle('SupplementaryDict.pickle')
+    ref_dict = getPickle('supp_table_with_mRNA.pickle')
     heat = readHeatMap("csv_files/google_heat_map.csv")
     accesCount, notAccesCount = 0, 0
     flag = 0
+
+    # ref_dict has mRNA in it
+    for i in ref_dict:
+        print(ref_dict[i]["mRNA"])
     for i in heat:
+        # these values are all from the heat mapping
+        # num is the molecule number
+        # access is accesibility
+        # interacting is the interacting binding site. It is a list
         num, access, interacting = i[0], i[1], i[2]
 
+        # the point has not interacting binding sites continue.
         if len(raw_dict[num]["ranges"]) == 0:
             continue
         if not checkDictKey(num, ref_dict):
+            print("not checkDictKey")
             flag += 1
             notAccesCount += 1
             position = getLocation(interacting, raw_dict[num]["length"])
@@ -122,17 +133,29 @@ def allAccess():
             allAccessCSV.append("{},{},{},{},{},{}".format(
                 num, raw_dict[num]["sRNA"], access, str(interacting).replace(",", "-"), str(0), str(raw_dict[num]["ranges"]).replace(",", "-")))
             continue
+        # checks if 100% contained
         if isInRange(interacting, ref_dict[num]["ranges"]):
             accesCount += 1
             length = ref_dict[num]["length"]
             position = getLocation(interacting, length)
             isAccesable.append((position, access))
-            hundred_percent_contained.append("{},{},{}".format(
-                raw_dict[num]["sRNA"], position, access))
+            # print("Interacting: {}, mRNA: {}".format(interacting, ref_dict[num]["mRNA"]))
+            #print("sRNA", ref_dict[num]["sRNA"], end="  ")
+
+            mRNA_value = isExact(interacting, ref_dict[num]["mRNA"])
+
+            # hundred_percent_contained.append("{},{},{}".format(
+            #     raw_dict[num]["sRNA"], position, access))
             # Molecule number, accessibility, interacting, supp table interacting sites
-            allAccessCSV.append("{},{},{},{},{},{}".format(
-                num, raw_dict[num]["sRNA"], access, str(interacting).replace(",", "-"), str(1), str(raw_dict[num]["ranges"]).replace(",", "-")))
+            # print("sRNA: {}, Pos: {}, Access: {}, interact: {}, mRNA: {}".format(
+            #     raw_dict[num]["sRNA"], position, access, interacting, mRNA_value))
+            hundred_percent_contained.append("{},{},{},{},{}".format(raw_dict[num]["sRNA"], position,
+                                                                     access, str(interacting).replace(",", "-"), mRNA_value))
+            # allAccessCSV.append("{},{},{},{},{},{}".format(
+            # num, raw_dict[num]["sRNA"], access, str(interacting).replace(",", "-"),
+            # str(1), str(raw_dict[num]["ranges"]).replace(",", "-")))
         else:
+
             notAccesCount += 1
             position = getLocation(interacting, raw_dict[num]["length"])
             notAccesable.append((position, access))
@@ -154,14 +177,15 @@ def allAccess():
     #    countBindingRegions(ref_dict), countBindingRegions(raw_dict)))
     #  createAllCSV("Heatmap_has_binding_region", allAccessCSV)
     # plotData(isAccesable, notAccesable, "within_100_percent")
-    header = "Molecule Number, Position, accessibility, Interacting Nucleotides\n"
-    #createCSV("not_100_percent_contained", hundred_percent_not_contained, header)
+    header = "Molecule Number, Position, accessibility, Interacting Nucleotides, mRNA\n"
+    createCSV("100_PERCENT_CONTAINED_WITH_mRNA", hundred_percent_contained, header)
+    # createCSV("not_100_percent_contained", hundred_percent_not_contained, header)
 
-    print("length isAccesable: {} length Not Accesable: {}\nlength 100 percent contained:{} length 100 percent not contained: {}".format(
-        len(isAccesable), len(notAccesable), len(hundred_percent_contained), len(hundred_percent_not_contained)))
-    for i in hundred_percent_not_contained:
-        print(i)
-    print('flag:{}'.format(flag))
+    # print("length isAccesable: {} length Not Accesable: {}\nlength 100 percent contained:{} length 100 percent not contained: {}".format(
+    #     len(isAccesable), len(notAccesable), len(hundred_percent_contained), len(hundred_percent_not_contained)))
+    # for i in hundred_percent_not_contained:
+    #     print(i)
+    # print('flag:{}'.format(flag))
 
 
 def getNoInteracting():
@@ -186,7 +210,8 @@ def getNoInteracting():
                     throwAwayValues.append(lineToWrite)
     # print(len(throwAwayValues))
     # header = "Molecule Number, Position, accessibility, Interacting Nucleotides\n"
-    # createCSV("no_interacting_nucleotides_in_sRNA_and_within_constraints", throwAwayValues, header)
+    # createCSV("no_interacting_nucleotides_in_sRNA_and_within_constraints",
+    # throwAwayValues, header)
 
 
 def testing():
@@ -212,4 +237,4 @@ def getInteracting():
     toPickle(hasInteractingNucleotidesDict, "sRNA_with_interacting_nucleotides")
 
 if __name__ == '__main__':
-    getInteracting()
+    allAccess()

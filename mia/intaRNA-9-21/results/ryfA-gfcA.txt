@@ -1,0 +1,14 @@
+
+gfcA
+           104                                                                                                                 208
+             |                                                                                                                 |
+5'-UAC...UUGG         C            CAU     GAAUAA  G  AA   A        AAGCUUU     AUCC        UU       G  GA  GAC         G       UGCC...ACG-3'
+             CAGCAUCAC   CG UAUUGUC   GCGAU      AG AA  GUU UGAAACAC       CUGCA    UUAUGGCC      CAU UU   C    GCCAGC U CGUUUGC
+             |||||:|||   || |||||:|   |||||      || ||  |:| ||||||||       |||||    |||:||||      ||| :|   |    |||||| : |||||||
+             GUCGUGGUG   GC AUAACGG   CGCUA      UC UU  CGA ACUUUGUG       GACGU    AAUGCCGG      GUA GA   G    CGGUCG G GCAAACG
+3'-UUU...UGCU         ACC  U                       G  CG   C                    A           UGCCUU   G  AAG AUUU      C G       CUCU...GCG-5'
+             |                                                                                                                 |
+           116                                                                                                                 21
+ryfA
+
+interaction energy = -16.7536 kcal/mol
