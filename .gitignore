@@ -99,5 +99,10 @@ ENV/
 .mypy_cache/
 
 # Files and images
+*/testDir/
 *.csv
 *.png
+
+*.fasta
+
+kevin/Bioinformatics/testDir/
