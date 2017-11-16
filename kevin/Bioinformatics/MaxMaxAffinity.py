@@ -43,7 +43,20 @@ while pos < len(sequence)-9:
     WTaff += aList[0]
 
     #for the Maximum affinity sequence
-    indOfHI = aList.index(min(aList))
+    MaxAffHI=0
+    indOfHI=0
+    keyi=-1
+    keyj=-1
+    for i in aList:
+        keyi+=1
+        keyj=-1
+        for j in aList2:
+            keyj+=1
+            TemptAffHI = i*j
+            if TemptAffHI>MaxAffHI:
+                MaxAffHI=TemptAffHI
+                indOfHI=keyi
+                indOfHij=keyj
 
     HIsequence += allpos[indOfHI][0:3]
     HIaff += aList[indOfHI]
@@ -55,12 +68,12 @@ while pos < len(sequence)-9:
 
 
     pos += 3
-
+indOfHij=0
 #add the second to last codon and stop codon
 #for wildtype
-WTsequence += codon2 + sequence[pos+3:pos+6]
-HIsequence += allpos[indOfHI][3:6] + sequence[pos+3:pos+6]
-RNDsequence += allpos[indOfRND][3:6] + sequence[pos+3:pos+6]
+WTsequence += codon2 + +codon3 + sequence[pos+6:pos+9]
+HIsequence += allpos[indOfHI][3:6] + allpos2[indOfHIj][3:6] + sequence[pos+6:pos+9]
+RNDsequence += allpos[indOfRND][3:6] + sequence[pos+6:pos+9]
 
 #Calculate Affinity
 def CalculateAffinity(sequence):
