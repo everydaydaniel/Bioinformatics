@@ -1,9 +1,20 @@
+import argparse
 import csv
 import os
 import re
 import numpy as np
 
-# TODO: make the interface for command line
+
+def parseArguments():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "path", help="Input the path to a folder containing your samples. Samples must be in a folder to run this script.")
+    parser.add_argument("reference", help="Path to reference genome.")
+
+    parser.add_argument("-o", "--output", type=str,
+                        help="Set the output filename, default will be frequecyAnalysis.csv")
+
+    return parser.parse_args()
 
 
 def weighted_std_dev(frequencies, positions, WA):
@@ -45,14 +56,16 @@ def checkFilePaths(directory):
 
 class AnalyzeFiles(object):
 
-    def __init__(self, paths=[], reference_genome=None):  # None for testing only
+    def __init__(self, paths=[], outputName=None, reference_genome=None):  # None for testing only
         self.paths = paths
-        self.dictionaries = [{} for i in range(len(self.paths))]
+        self.outputName = outputName
         self.reference_genome = reference_genome
         self.read_data = []  # this will be used to hold all the data
         self.log_data = {}
         self.sampleNumbers = []
         self.sRNAGroups = {}
+        self.min_max = {}
+        self.normailized_adj_WA = {}  # dictionary to hold all normilized adj weighterd averages
 
     # this retrieves the sample numbers
     def retrieve_sample_numbers(self):
@@ -63,12 +76,71 @@ class AnalyzeFiles(object):
             for i in range(len(self.sampleNumbers) + 1, len(self.paths) + 1):
                 self.sampleNumbers.append(i)
 
+    # Want to set a dictionary with values as such. Why? need these values to
+    # for compute averages fo error propogation.
+    # access => dict[sample][gene]["normalized_WA"]
+    # we are going ot use this to gather information for later statisitics
+    def set_normalized_WA(self, merged):
+        for gene in merged:
+            for sample in merged[gene]:
+                adj_WA = merged[gene][sample]['adj_weighted_average']
+                _min, _max = self.get_min_max(gene, sample, merged)
+                norm_wa = None
+                if adj_WA == "N/A":
+                    norm_wa = "N/A"
+                if _min == None or _max == None:
+                    norm_wa = "N/A"
+                if norm_wa != "N/A":
+                    norm_wa = (adj_WA - _min) / (_max - _min)
+                if sample not in self.normailized_adj_WA:
+                    self.normailized_adj_WA[sample] = {}
+                if gene not in self.normailized_adj_WA[sample]:
+                    self.normailized_adj_WA[sample][gene] = {'normalized_WA': norm_wa}
+
+    def error_propigation(self):
+        pass
+
+    # we clculate the normilized weighted average for use in the CSV
+    def normalized_adj_WA(self, adj_WA, gene, sample, merged):
+        _min, _max = self.get_min_max(gene, sample, merged)
+        if adj_WA == "N/A":
+            return "N/A"
+        if _min == None or _max == None:
+            return "N/A"
+        return (adj_WA - _min) / (_max - _min)
+
+    # set the min max for a group of sRNA
+    # desired structure: min_max[sample][gene] = {min: val, max: val}
+    def set_min_max(self, gene, sample, merged):
+        values = []
+        for sRNA in self.sRNAGroups[gene]:
+            values.append(merged[sRNA][sample]['adj_weighted_average'])
+        # sift out non numbers
+        values = [i for i in values if not isinstance(i, str)]
+        if len(values) < 2:
+            self.min_max[sample][gene] = {"min": None, "max": None}
+        else:
+            self.min_max[sample][gene] = {"min": min(values), "max": max(values)}
+
+    # retrieve the min and max of a given sample
+    # input: dataset[gene][sample_number]
+    # output: min_max[sample][gene][min] and min_max[gene][sample][max]
+    def get_min_max(self, gene, sample_number, merged):
+        gene = gene.split("-")[0]
+
+        if sample_number not in self.min_max:
+            self.min_max[sample_number] = {}
+        if gene not in self.min_max[sample_number]:  # only need to do this once per sRNA
+            self.set_min_max(gene, sample_number, merged)
+            # after this step that dictionart Key value pair will exist
+        return (self.min_max[sample_number][gene]["min"], self.min_max[sample_number][gene]["max"])
+
     # This method will get all the sRNA groups for normalization purposes
     # Example:
-    # input = reference_genome
+    # input = reference_genome order
     # output = {'tpke': ['tpke-1','tpke-2'...]}
-    # this will run witin genome parse so that it can be done after getting the order
-    def get_srna_groups(order):
+    # this will run within genome parse so that it can be done after getting the order
+    def get_srna_groups(self, order):
         for value in order:
             base_sRNA = value.split("-")[0]
             if base_sRNA not in self.sRNAGroups:
@@ -86,7 +158,7 @@ class AnalyzeFiles(object):
                 for row in reference:
                     if row[0] == ">":
                         genome_order.append(row[1:].strip())
-        get_srna_groups(genome_order)
+        self.get_srna_groups(genome_order)
         return genome_order
 
     def readCSV(self, path):
@@ -116,6 +188,9 @@ class AnalyzeFiles(object):
             weighted_average = np.average(positions, weights=frequencies)
             std_dev = weighted_std_dev(frequencies, positions, weighted_average)
             num_reads = sum(frequencies)
+            adj_weighted_average = weighted_average - 164
+            if adj_weighted_average < 0:
+                adj_weighted_average = "N/A"
             # insert the read name as a key that contains a dictionary
             # of the statistics
             # example to access will be data[readName][statisticName]
@@ -123,6 +198,7 @@ class AnalyzeFiles(object):
                 "weighted_average": weighted_average,
                 "std_dev": std_dev,
                 "num_reads": num_reads,
+                "adj_weighted_average": adj_weighted_average,
             }
         # append the data from one file into the read data list
         self.read_data.append(data)
@@ -155,23 +231,26 @@ class AnalyzeFiles(object):
                     merged[gene][currentSample] = {
                         'num_reads': "N/A",
                         'std_dev': "N/A",
-                        'weighted_average': "N/A"
+                        'weighted_average': "N/A",
+                        'adj_weighted_average': "N/A",
                     }
+        # set the min max dictionary
+
         # return the merged ditionary and the number of samples analyzed
         return merged, [i for i in range(1, currentSample + 1)], geneNames
 
     def main(self):
         # want to write all the merged files into a csv file
         merged, order, genes = self.merge()
-        analysis_cols = ["W/A", "Std dev", "Num reads"]
+        self.set_normalized_WA(merged)
+        analysis_cols = ["W/A", "Std dev", "Num reads", "Adj W/A", "Norm adj W/A"]
         num_samples = len(order)
-        with open("output.csv", "w") as csvFile:
+        with open("{}.csv".format(self.outputName), "w") as csvFile:
             header = "gene,"
             for count, col in enumerate(self.sampleNumbers):
                 header += ",".join(["sample{} {}".format(col, i) for i in analysis_cols])
-
                 header += ","
-            print(header)
+            # print(header)
             header = header[:-1]
             header += "\n"
             csvFile.write(header)
@@ -181,20 +260,35 @@ class AnalyzeFiles(object):
                     weighted_average = merged[gene][sample]["weighted_average"]
                     standard_deviation = merged[gene][sample]["std_dev"]
                     num_reads = merged[gene][sample]["num_reads"]
-                    toWrite += ",{},{},{}".format(weighted_average, standard_deviation, num_reads)
+                    adj_weighted_average = merged[gene][sample]["adj_weighted_average"]
+                    normalized_WA = self.normailized_adj_WA[sample][gene]['normalized_WA']
+                    # normalized_WA = self.normalized_adj_WA(
+                    #     adj_weighted_average, gene, sample, merged)
+
+                    toWrite += ",{},{},{},{},{}".format(weighted_average, standard_deviation,
+                                                        num_reads, adj_weighted_average, normalized_WA)
                 toWrite += "\n"
                 csvFile.write(toWrite)
 
 
 def main():
+    args = parseArguments()
+
+    path, output, reference = args.path, args.output, args.reference
+    if output == None:
+        output = "frequecyAnalysis"
+
     # analyze = AnalyzeFiles(reference_genome="INTERFACE_genome.fa")
     # read = analyze.analysis("samples/frequencies_analysis_sample.csv")
     # parse = analyze.geneome_parse()
-    paths = getFilePaths("samples/recentResults")
-    print(paths)
-    analyze = AnalyzeFiles(paths, "INTERFACE_genome.fa")
+    paths = getFilePaths(path)
+    print("Analyzing files in {}\nReference genome file is: {}\nResults will be output to {}.csv.".format(
+        path, reference, output))
+    # paths = getFilePaths("samples/recentResults")
+    analyze = AnalyzeFiles(paths, output, reference)
     analyze.retrieve_sample_numbers()
     analyze.main()
+    print("Done.")
 
 if __name__ == '__main__':
     main()
