@@ -111,3 +111,10 @@ kevin/Bioinformatics/testDir/
 mia/pipelinetools/testFiles/
 mia/pipelinetools/samples/
 mia/pipelinetools/outputFiles/
+*.fa
+
+*.zip
+
+*.m
+
+*.fa

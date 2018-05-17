@@ -43,7 +43,7 @@ def sorted_aphanumeric(data):
 def getFilePaths(directory):
     paths = []
     for fname in sorted_aphanumeric(os.listdir(directory)):
-        paths.append(directory + "/{}".format(fname))
+        paths.append(directory + "{}".format(fname))
     return paths
 
 
@@ -66,6 +66,7 @@ class AnalyzeFiles(object):
         self.sRNAGroups = {}
         self.min_max = {}
         self.normailized_adj_WA = {}  # dictionary to hold all normilized adj weighterd averages
+        self.geneNames = None
 
     # this retrieves the sample numbers
     def retrieve_sample_numbers(self):
@@ -158,6 +159,9 @@ class AnalyzeFiles(object):
                 for row in reference:
                     if row[0] == ">":
                         genome_order.append(row[1:].strip())
+        else:
+            raise FileNotFoundError(
+                "{} file does not exist. Check path to file.".format(self.reference_genome))
         self.get_srna_groups(genome_order)
         return genome_order
 
@@ -208,12 +212,15 @@ class AnalyzeFiles(object):
         # first collect all the data from all reads
         for fname in self.paths:
             # collects all the data from the csv sheets
+            print("Analyzing sample {}".format(fname))
             self.analysis(fname)
+        print("Merging data.")
         # by now the self.read_data list should be populated
         merged = {}  # ideally I should've merged in the analysis step because now we are taking up more memory
         # will probably fix later
         # gene "sorted" name
-        geneNames = self.geneome_parse()  # list of genes from reference genome
+
+        geneNames = self.geneNames  # list of genes from reference genome
         for sampleNumber, sampleData in enumerate(self.read_data):
             currentSample = sampleNumber + 1
             # What we want to do here is combine all the file statistics so we can write it into
@@ -241,6 +248,7 @@ class AnalyzeFiles(object):
 
     def main(self):
         # want to write all the merged files into a csv file
+        self.geneNames = self.geneome_parse()
         merged, order, genes = self.merge()
         self.set_normalized_WA(merged)
         analysis_cols = ["W/A", "Std dev", "Num reads", "Adj W/A", "Norm adj W/A"]
@@ -256,17 +264,22 @@ class AnalyzeFiles(object):
             csvFile.write(header)
             for gene in genes:
                 toWrite = "{}".format(gene)
-                for sample in order:
-                    weighted_average = merged[gene][sample]["weighted_average"]
-                    standard_deviation = merged[gene][sample]["std_dev"]
-                    num_reads = merged[gene][sample]["num_reads"]
-                    adj_weighted_average = merged[gene][sample]["adj_weighted_average"]
-                    normalized_WA = self.normailized_adj_WA[sample][gene]['normalized_WA']
-                    # normalized_WA = self.normalized_adj_WA(
-                    #     adj_weighted_average, gene, sample, merged)
 
-                    toWrite += ",{},{},{},{},{}".format(weighted_average, standard_deviation,
-                                                        num_reads, adj_weighted_average, normalized_WA)
+                for sample in order:
+                    # if the number of reads is less than 3 then we dont consider it
+                    if merged[gene][sample]["num_reads"] == "N/A" or merged[gene][sample]["num_reads"] < 3:
+                        toWrite += ",{},{},{},{},{}".format(
+                            "not enough reads", "not enough reads", "not enough reads", "not enough reads", "not enough reads")
+                    else:
+                        weighted_average = merged[gene][sample]["weighted_average"]
+                        standard_deviation = merged[gene][sample]["std_dev"]
+                        num_reads = merged[gene][sample]["num_reads"]
+                        adj_weighted_average = merged[gene][sample]["adj_weighted_average"]
+                        normalized_WA = self.normailized_adj_WA[sample][gene]['normalized_WA']
+                        # normalized_WA = self.normalized_adj_WA(
+                        #     adj_weighted_average, gene, sample, merged)
+                        toWrite += ",{},{},{},{},{}".format(weighted_average, standard_deviation,
+                                                            num_reads, adj_weighted_average, normalized_WA)
                 toWrite += "\n"
                 csvFile.write(toWrite)
 
@@ -282,6 +295,7 @@ def main():
     # read = analyze.analysis("samples/frequencies_analysis_sample.csv")
     # parse = analyze.geneome_parse()
     paths = getFilePaths(path)
+
     print("Analyzing files in {}\nReference genome file is: {}\nResults will be output to {}.csv.".format(
         path, reference, output))
     # paths = getFilePaths("samples/recentResults")
