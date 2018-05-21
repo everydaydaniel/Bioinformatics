@@ -67,6 +67,8 @@ class AnalyzeFiles(object):
         self.min_max = {}
         self.normailized_adj_WA = {}  # dictionary to hold all normilized adj weighterd averages
         self.geneNames = None
+        self.geneDict = {}
+        self.norm_WA_avg_dict = {}
 
     # this retrieves the sample numbers
     def retrieve_sample_numbers(self):
@@ -98,6 +100,58 @@ class AnalyzeFiles(object):
                 if gene not in self.normailized_adj_WA[sample]:
                     self.normailized_adj_WA[sample][gene] = {'normalized_WA': norm_wa}
 
+    ###################################################
+    ########## END OF ROW STATISTICS SECTION ##########
+    ###################################################
+    # This function will take in the gene were Analyzing and compute the mean
+    # of the normalized adjusted weighted average. If a colum contains N/A it will
+    # not consider it ex: [1,2,3,"N/A"] = (1+2+3)/3 NOT (1+2+3)/4
+    def normalized_WA_avg(self, gene, order):
+        values = []
+        for sample in order:
+            value = self.normailized_adj_WA[sample][gene]['normalized_WA']
+            if isinstance(value, str):
+                continue
+            values.append(value)
+        if len(values) == 0:
+            return 0, 0
+        return np.mean(values), np.nanstd(values, ddof=1)  # delta degrees of freedoom = 1
+
+    # set the data dict for normailized average and std dev, it will also set the max and min for
+    # the basename gene
+    def set_norm_WA_avg(self, order, gene):
+        if gene not in self.norm_WA_avg_dict:
+            baseName = gene.split("-")[0]
+            avg_totals = []
+            for probe in self.geneDict[baseName]:
+                values = []
+                for sample in order:
+                    value = self.normailized_adj_WA[sample][probe]['normalized_WA']
+                    if isinstance(value, str) or np.isnan(value):
+                        continue
+                    values.append(value)
+                if len(values) == 0:
+                    self.norm_WA_avg_dict[probe] = {"norm_average": 0, "norm_std": 0}
+                    avg_totals.append(0)
+                else:
+                    # if the length of values is equal to 1 then numpy will throw a runttime warning
+                    # because the value is nan. check length first to get rid of error
+                    if len(values) == 1:
+                        self.norm_WA_avg_dict[probe] = {
+                            "norm_average": np.mean(values), "norm_std": np.nan}
+                    else:
+                        self.norm_WA_avg_dict[probe] = {"norm_average": np.mean(values), "norm_std": np.nanstd(
+                            values, ddof=1)}  # delta degrees of freedoom = 1
+                    avg_totals.append(np.mean(values))
+            self.norm_WA_avg_dict[baseName] = {"max": max(avg_totals), "min": min(avg_totals)}
+
+    # This will calculate the normalization of the average norms
+    def norm_average_norm(self, gene):
+        current = self.norm_WA_avg_dict[gene]["norm_average"]
+        baseName = gene.split("-")[0]
+        _min, _max = self.norm_WA_avg_dict[baseName]["min"], self.norm_WA_avg_dict[baseName]["max"]
+        return (current - _min) / (_max - _min)
+
     def error_propigation(self):
         pass
 
@@ -109,6 +163,16 @@ class AnalyzeFiles(object):
         if _min == None or _max == None:
             return "N/A"
         return (adj_WA - _min) / (_max - _min)
+
+    # takes in a gene list and creates a dictionary containing smilar genes
+    # ex: [tpke11-1,tpke11-2,tpke11-3,ipex-1,ipex-2] => {tpke11:
+    # [tpke11-1,tpke11-2,tpke11-3], ipex: [ipex-1,ipex-2]}
+    def set_gene_dict(self, genes):
+        for gene in genes:
+            baseName = gene.split("-")[0]
+            if baseName not in self.geneDict:
+                self.geneDict[baseName] = []
+            self.geneDict[baseName].append(gene)
 
     # set the min max for a group of sRNA
     # desired structure: min_max[sample][gene] = {min: val, max: val}
@@ -250,6 +314,7 @@ class AnalyzeFiles(object):
         # want to write all the merged files into a csv file
         self.geneNames = self.geneome_parse()
         merged, order, genes = self.merge()
+        self.set_gene_dict(genes)
         self.set_normalized_WA(merged)
         analysis_cols = ["W/A", "Std dev", "Num reads", "Adj W/A", "Norm adj W/A"]
         num_samples = len(order)
@@ -259,12 +324,14 @@ class AnalyzeFiles(object):
                 header += ",".join(["sample{} {}".format(col, i) for i in analysis_cols])
                 header += ","
             # print(header)
+            header += "normalized adj WA average, normalized adj WA STD, norm avg norm access,"
             header = header[:-1]
+
             header += "\n"
             csvFile.write(header)
             for gene in genes:
                 toWrite = "{}".format(gene)
-
+                # this loop does calculations on each sample
                 for sample in order:
                     # if the number of reads is less than 3 then we dont consider it
                     if merged[gene][sample]["num_reads"] == "N/A" or merged[gene][sample]["num_reads"] < 3:
@@ -280,6 +347,22 @@ class AnalyzeFiles(object):
                         #     adj_weighted_average, gene, sample, merged)
                         toWrite += ",{},{},{},{},{}".format(weighted_average, standard_deviation,
                                                             num_reads, adj_weighted_average, normalized_WA)
+                # end of sample loop, use this section to do analysis across all replicates
+                # set the dict for analysis only runs once ber basegene name
+                self.set_norm_WA_avg(order, gene)
+
+                normalized_WA_avg, normalized_WA_std = self.norm_WA_avg_dict[
+                    gene]["norm_average"], self.norm_WA_avg_dict[gene]["norm_std"]
+                normalized_average_norm = self.norm_average_norm(gene)
+                # only time the two were not equal was when they were both nan's
+                # if self.norm_WA_avg_dict[gene]["norm_average"] != normalized_WA_avg or self.norm_WA_avg_dict[gene]["norm_std"] != normalized_WA_std:
+                #     if (np.isnan(self.norm_WA_avg_dict[gene]["norm_std"]) and np.isnan(normalized_WA_std)):
+                #         continue
+                #     else:
+                #         print(False)
+                toWrite += ",{},{},{}".format(normalized_WA_avg,
+                                              normalized_WA_std, normalized_average_norm)
+
                 toWrite += "\n"
                 csvFile.write(toWrite)
 
