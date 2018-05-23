@@ -21,7 +21,7 @@ def weighted_std_dev(frequencies, positions, WA):
     # frequencies = [array], positions = [array], WA = Constant
     denominator = sum(frequencies) - 1
     if denominator == 0:
-        return "nan"
+        return np.nan
     sum_numerator = 0
     for i in range(len(frequencies)):
         sum_numerator += (frequencies[i] * (positions[i] - WA)**2)
@@ -65,10 +65,15 @@ class AnalyzeFiles(object):
         self.sampleNumbers = []
         self.sRNAGroups = {}
         self.min_max = {}
-        self.normailized_adj_WA = {}  # dictionary to hold all normilized adj weighterd averages
+        self.normalized_adj_WA = {}  # dictionary to hold all normilized adj weighterd averages
         self.geneNames = None
         self.geneDict = {}
-        self.norm_WA_avg_dict = {}
+        self.avg_norm_WA_dict = {}
+        # nan: not a number divided by zero, N/A not applicaple not found in sample, N/V negative
+        # value on adj weighted value, NER not enough reads, NEC Not enough
+        # coverage in the sRNA sample
+        self.errors = [np.nan, "N/A", "A", "N/V", "NER",
+                       "NEC"]  # None type errors we put into data
 
     # this retrieves the sample numbers
     def retrieve_sample_numbers(self):
@@ -80,25 +85,25 @@ class AnalyzeFiles(object):
                 self.sampleNumbers.append(i)
 
     # Want to set a dictionary with values as such. Why? need these values to
-    # for compute averages fo error propogation.
+    # compute averages for error propogation.
     # access => dict[sample][gene]["normalized_WA"]
-    # we are going ot use this to gather information for later statisitics
+    # we are going ot use this to gather information for later statistics
     def set_normalized_WA(self, merged):
         for gene in merged:
             for sample in merged[gene]:
                 adj_WA = merged[gene][sample]['adj_weighted_average']
                 _min, _max = self.get_min_max(gene, sample, merged)
                 norm_wa = None
-                if adj_WA == "N/A":
+                if adj_WA in self.errors:
                     norm_wa = "N/A"
                 if _min == None or _max == None:
                     norm_wa = "N/A"
-                if norm_wa != "N/A":
+                if norm_wa not in self.errors:
                     norm_wa = (adj_WA - _min) / (_max - _min)
-                if sample not in self.normailized_adj_WA:
-                    self.normailized_adj_WA[sample] = {}
-                if gene not in self.normailized_adj_WA[sample]:
-                    self.normailized_adj_WA[sample][gene] = {'normalized_WA': norm_wa}
+                if sample not in self.normalized_adj_WA:
+                    self.normalized_adj_WA[sample] = {}
+                if gene not in self.normalized_adj_WA[sample]:
+                    self.normalized_adj_WA[sample][gene] = {'normalized_WA': norm_wa}
 
     ###################################################
     ########## END OF ROW STATISTICS SECTION ##########
@@ -109,7 +114,7 @@ class AnalyzeFiles(object):
     def normalized_WA_avg(self, gene, order):
         values = []
         for sample in order:
-            value = self.normailized_adj_WA[sample][gene]['normalized_WA']
+            value = self.normalized_adj_WA[sample][gene]['normalized_WA']
             if isinstance(value, str):
                 continue
             values.append(value)
@@ -119,37 +124,47 @@ class AnalyzeFiles(object):
 
     # set the data dict for normailized average and std dev, it will also set the max and min for
     # the basename gene
-    def set_norm_WA_avg(self, order, gene):
-        if gene not in self.norm_WA_avg_dict:
+    def set_avg_norm_WA(self, order, gene):
+        if gene not in self.avg_norm_WA_dict:
             baseName = gene.split("-")[0]
-            avg_totals = []
+            avg_totals = []  # contains the average of the normalized accesibilitys
             for probe in self.geneDict[baseName]:
                 values = []
                 for sample in order:
-                    value = self.normailized_adj_WA[sample][probe]['normalized_WA']
+                    value = self.normalized_adj_WA[sample][probe]['normalized_WA']
                     if isinstance(value, str) or np.isnan(value):
                         continue
                     values.append(value)
                 if len(values) == 0:
-                    self.norm_WA_avg_dict[probe] = {"norm_average": 0, "norm_std": 0}
-                    avg_totals.append(0)
+                    self.avg_norm_WA_dict[probe] = {"norm_average": np.nan, "norm_std": np.nan}
+                    # avg_totals.append(0)
                 else:
                     # if the length of values is equal to 1 then numpy will throw a runttime warning
                     # because the value is nan. check length first to get rid of error
                     if len(values) == 1:
-                        self.norm_WA_avg_dict[probe] = {
+                        self.avg_norm_WA_dict[probe] = {
                             "norm_average": np.mean(values), "norm_std": np.nan}
                     else:
-                        self.norm_WA_avg_dict[probe] = {"norm_average": np.mean(values), "norm_std": np.nanstd(
+                        self.avg_norm_WA_dict[probe] = {"norm_average": np.mean(values), "norm_std": np.nanstd(
                             values, ddof=1)}  # delta degrees of freedoom = 1
                     avg_totals.append(np.mean(values))
-            self.norm_WA_avg_dict[baseName] = {"max": max(avg_totals), "min": min(avg_totals)}
+
+            self.avg_norm_WA_dict[baseName] = {"max": max(avg_totals), "min": min(avg_totals)}
 
     # This will calculate the normalization of the average norms
     def norm_average_norm(self, gene):
-        current = self.norm_WA_avg_dict[gene]["norm_average"]
+        current = self.avg_norm_WA_dict[gene]["norm_average"]
         baseName = gene.split("-")[0]
-        _min, _max = self.norm_WA_avg_dict[baseName]["min"], self.norm_WA_avg_dict[baseName]["max"]
+
+        _min, _max = self.avg_norm_WA_dict[baseName]["min"], self.avg_norm_WA_dict[baseName]["max"]
+        if _min == np.nan or _max == np.nan:
+            return np.nan
+        if _min == 0 and _max == 0:
+            return np.nan
+        if _min in self.errors or _max in self.errors:
+            return np.nan
+        if (current - _min == 0):
+            return 0
         return (current - _min) / (_max - _min)
 
     def error_propigation(self):
@@ -185,14 +200,25 @@ class AnalyzeFiles(object):
         if len(values) < 2:
             self.min_max[sample][gene] = {"min": None, "max": None}
         else:
-            self.min_max[sample][gene] = {"min": min(values), "max": max(values)}
+            min_val = min(values)
+            max_val = max(values)
+            if min_val == max_val:
+                self.min_max[sample][gene] = {"min": None, "max": None}
+                for sRNA in self.sRNAGroups[gene]:
+                    merged[sRNA][sample] = {
+                        "weighted_average": "NEC",
+                        "std_dev": "NEC",
+                        "num_reads": "NEC",
+                        "adj_weighted_average": "NEC",
+                    }
+            else:
+                self.min_max[sample][gene] = {"min": min_val, "max": max_val}
 
     # retrieve the min and max of a given sample
     # input: dataset[gene][sample_number]
     # output: min_max[sample][gene][min] and min_max[gene][sample][max]
     def get_min_max(self, gene, sample_number, merged):
         gene = gene.split("-")[0]
-
         if sample_number not in self.min_max:
             self.min_max[sample_number] = {}
         if gene not in self.min_max[sample_number]:  # only need to do this once per sRNA
@@ -216,7 +242,7 @@ class AnalyzeFiles(object):
     # This method will grab all the genomes from the reference genome and
     # put all the names in a list. The reason for this is so we can call
     # all the data dictionary in a "sorted" order.
-    def geneome_parse(self):
+    def genome_parse(self):
         genome_order = []
         if os.path.exists(self.reference_genome):
             with open(self.reference_genome, "r") as reference:
@@ -253,21 +279,32 @@ class AnalyzeFiles(object):
                 data["length"] = length
             positions = list(range(1, length + 1))
             # get the weighted avereage, standard deviation and sum of all the reads
-            weighted_average = np.average(positions, weights=frequencies)
-            std_dev = weighted_std_dev(frequencies, positions, weighted_average)
+            # if the number of reads is less than 3 we dont want it in calculations
             num_reads = sum(frequencies)
-            adj_weighted_average = weighted_average - 164
-            if adj_weighted_average < 0:
-                adj_weighted_average = "N/A"
-            # insert the read name as a key that contains a dictionary
-            # of the statistics
-            # example to access will be data[readName][statisticName]
-            data[name] = {
-                "weighted_average": weighted_average,
-                "std_dev": std_dev,
-                "num_reads": num_reads,
-                "adj_weighted_average": adj_weighted_average,
-            }
+            if (num_reads != "N/A" and num_reads >= 3):
+                weighted_average = np.average(positions, weights=frequencies)
+                std_dev = weighted_std_dev(frequencies, positions, weighted_average)
+                adj_weighted_average = weighted_average - 164
+                if adj_weighted_average < 0:
+                    adj_weighted_average = "N/V"
+                # insert the read name as a key that contains a dictionary
+                # of the statistics
+                # example to access will be data[readName][statisticName]
+                data[name] = {
+                    "weighted_average": weighted_average,
+                    "std_dev": std_dev,
+                    "num_reads": num_reads,
+                    "adj_weighted_average": adj_weighted_average,
+                }
+
+            else:
+                data[name] = {
+                    "weighted_average": "NER",
+                    "std_dev": "NER",
+                    "num_reads": "NER",
+                    "adj_weighted_average": "NER",
+                }
+
         # append the data from one file into the read data list
         self.read_data.append(data)
 
@@ -305,16 +342,16 @@ class AnalyzeFiles(object):
                         'weighted_average': "N/A",
                         'adj_weighted_average': "N/A",
                     }
-        # set the min max dictionary
 
         # return the merged ditionary and the number of samples analyzed
-        return merged, [i for i in range(1, currentSample + 1)], geneNames
+        return merged, [i for i in range(1, currentSample + 1)]
 
     def main(self):
         # want to write all the merged files into a csv file
-        self.geneNames = self.geneome_parse()
-        merged, order, genes = self.merge()
-        self.set_gene_dict(genes)
+        self.geneNames = self.genome_parse()  # has sRNA in order from reference genome
+        merged, order = self.merge()
+        print("data merged.")
+        self.set_gene_dict(self.geneNames)  # easy access to basenames and samples
         self.set_normalized_WA(merged)
         analysis_cols = ["W/A", "Std dev", "Num reads", "Adj W/A", "Norm adj W/A"]
         num_samples = len(order)
@@ -329,34 +366,28 @@ class AnalyzeFiles(object):
 
             header += "\n"
             csvFile.write(header)
-            for gene in genes:
+            for gene in self.geneNames:
                 toWrite = "{}".format(gene)
                 # this loop does calculations on each sample
                 for sample in order:
-                    # if the number of reads is less than 3 then we dont consider it
-                    if merged[gene][sample]["num_reads"] == "N/A" or merged[gene][sample]["num_reads"] < 3:
-                        toWrite += ",{},{},{},{},{}".format(
-                            "not enough reads", "not enough reads", "not enough reads", "not enough reads", "not enough reads")
-                    else:
-                        weighted_average = merged[gene][sample]["weighted_average"]
-                        standard_deviation = merged[gene][sample]["std_dev"]
-                        num_reads = merged[gene][sample]["num_reads"]
-                        adj_weighted_average = merged[gene][sample]["adj_weighted_average"]
-                        normalized_WA = self.normailized_adj_WA[sample][gene]['normalized_WA']
-                        # normalized_WA = self.normalized_adj_WA(
-                        #     adj_weighted_average, gene, sample, merged)
-                        toWrite += ",{},{},{},{},{}".format(weighted_average, standard_deviation,
-                                                            num_reads, adj_weighted_average, normalized_WA)
+                    weighted_average = merged[gene][sample]["weighted_average"]
+                    standard_deviation = merged[gene][sample]["std_dev"]
+                    num_reads = merged[gene][sample]["num_reads"]
+                    adj_weighted_average = merged[gene][sample]["adj_weighted_average"]
+                    normalized_WA = self.normalized_adj_WA[sample][gene]['normalized_WA']
+                    # normalized_WA = self.normalized_adj_WA(
+                    #     adj_weighted_average, gene, sample, merged)
+                    toWrite += ",{},{},{},{},{}".format(weighted_average, standard_deviation,
+                                                        num_reads, adj_weighted_average, normalized_WA)
                 # end of sample loop, use this section to do analysis across all replicates
                 # set the dict for analysis only runs once ber basegene name
-                self.set_norm_WA_avg(order, gene)
-
-                normalized_WA_avg, normalized_WA_std = self.norm_WA_avg_dict[
-                    gene]["norm_average"], self.norm_WA_avg_dict[gene]["norm_std"]
+                self.set_avg_norm_WA(order, gene)
+                normalized_WA_avg, normalized_WA_std = self.avg_norm_WA_dict[
+                    gene]["norm_average"], self.avg_norm_WA_dict[gene]["norm_std"]
                 normalized_average_norm = self.norm_average_norm(gene)
                 # only time the two were not equal was when they were both nan's
-                # if self.norm_WA_avg_dict[gene]["norm_average"] != normalized_WA_avg or self.norm_WA_avg_dict[gene]["norm_std"] != normalized_WA_std:
-                #     if (np.isnan(self.norm_WA_avg_dict[gene]["norm_std"]) and np.isnan(normalized_WA_std)):
+                # if self.avg_norm_WA_dict[gene]["norm_average"] != normalized_WA_avg or self.avg_norm_WA_dict[gene]["norm_std"] != normalized_WA_std:
+                #     if (np.isnan(self.avg_norm_WA_dict[gene]["norm_std"]) and np.isnan(normalized_WA_std)):
                 #         continue
                 #     else:
                 #         print(False)
@@ -376,7 +407,7 @@ def main():
 
     # analyze = AnalyzeFiles(reference_genome="INTERFACE_genome.fa")
     # read = analyze.analysis("samples/frequencies_analysis_sample.csv")
-    # parse = analyze.geneome_parse()
+    # parse = analyze.genome_parse()
     paths = getFilePaths(path)
 
     print("Analyzing files in {}\nReference genome file is: {}\nResults will be output to {}.csv.".format(
