@@ -147,15 +147,33 @@ class AnalyzeFiles(object):
                     else:
                         self.avg_norm_WA_dict[probe] = {"norm_average": np.mean(values), "norm_std": np.nanstd(
                             values, ddof=1)}  # delta degrees of freedoom = 1
-                    avg_totals.append(np.mean(values))
 
-            self.avg_norm_WA_dict[baseName] = {"max": max(avg_totals), "min": min(avg_totals)}
+                    avg_totals.append(np.mean(values))
+            # This is to target any probes that just have one probe i.e
+            # >probe_special
+            # GATTGATAGGATA...... etc, etc
+            special = None
+            if baseName in self.avg_norm_WA_dict:
+                special = baseName
+            if len(avg_totals) > 2:  # just incase region is never targeted
+                if special is not None:
+                    self.avg_norm_WA_dict[baseName]["max"] = max(avg_totals)
+                    self.avg_norm_WA_dict[baseName]["min"] = min(avg_totals)
+                else:
+                    self.avg_norm_WA_dict[baseName] = {
+                        "max": max(avg_totals), "min": min(avg_totals)}
+            else:
+                if special is not None:
+                    self.avg_norm_WA_dict[baseName]["max"] = "N/A"
+                    self.avg_norm_WA_dict[baseName]["min"] = "N/A"
+                else:
+                    self.avg_norm_WA_dict[baseName] = {"max": "N/A", "min": "N/A", }
 
     # This will calculate the normalization of the average norms
+
     def norm_average_norm(self, gene):
         current = self.avg_norm_WA_dict[gene]["norm_average"]
         baseName = gene.split("-")[0]
-
         _min, _max = self.avg_norm_WA_dict[baseName]["min"], self.avg_norm_WA_dict[baseName]["max"]
         if _min == np.nan or _max == np.nan:
             return np.nan
@@ -167,6 +185,10 @@ class AnalyzeFiles(object):
             return 0
         return (current - _min) / (_max - _min)
 
+    # Compute the propigation of error
+    # variables:
+    # avg_norm_WA => avg_norm_WA_dict
+    # max and min => ????
     def error_propigation(self):
         pass
 

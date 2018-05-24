@@ -118,3 +118,7 @@ mia/pipelinetools/outputFiles/
 *.m
 
 *.fa
+
+mia/pipelinetools/todo.txt
+
+*.fa
