@@ -69,6 +69,7 @@ class AnalyzeFiles(object):
         self.geneNames = None
         self.geneDict = {}
         self.avg_norm_WA_dict = {}
+        self.numErrors = 0
         # nan: not a number divided by zero, N/A not applicaple not found in sample, N/V negative
         # value on adj weighted value, NER not enough reads, NEC Not enough
         # coverage in the sRNA sample
@@ -122,12 +123,22 @@ class AnalyzeFiles(object):
             return 0, 0
         return np.mean(values), np.nanstd(values, ddof=1)  # delta degrees of freedoom = 1
 
+    def map_values(self, mapping, _min, _max):
+        min_probe, max_probe = None, None
+        for key in mapping:
+            if mapping[key]["norm_average"] == _min and min_probe == None:
+                min_probe = key
+            if mapping[key]["norm_average"] == _max and max_probe == None:
+                max_probe = key
+        return min_probe, max_probe
     # set the data dict for normailized average and std dev, it will also set the max and min for
     # the basename gene
+
     def set_avg_norm_WA(self, order, gene):
         if gene not in self.avg_norm_WA_dict:
             baseName = gene.split("-")[0]
             avg_totals = []  # contains the average of the normalized accesibilitys
+            mapping = {}  # used to map the max value with corresponding std deviation.
             for probe in self.geneDict[baseName]:
                 values = []
                 for sample in order:
@@ -144,9 +155,11 @@ class AnalyzeFiles(object):
                     if len(values) == 1:
                         self.avg_norm_WA_dict[probe] = {
                             "norm_average": np.mean(values), "norm_std": np.nan}
+                        mapping[probe] = self.avg_norm_WA_dict[probe]
                     else:
                         self.avg_norm_WA_dict[probe] = {"norm_average": np.mean(values), "norm_std": np.nanstd(
                             values, ddof=1)}  # delta degrees of freedoom = 1
+                        mapping[probe] = self.avg_norm_WA_dict[probe]
 
                     avg_totals.append(np.mean(values))
             # This is to target any probes that just have one probe i.e
@@ -156,18 +169,30 @@ class AnalyzeFiles(object):
             if baseName in self.avg_norm_WA_dict:
                 special = baseName
             if len(avg_totals) > 2:  # just incase region is never targeted
+                _max, _min = max(avg_totals), min(avg_totals)
+                # get the name of the probe that has the max avg normalized weighted average
+                min_probe, max_probe = self.map_values(mapping, _min, _max)
                 if special is not None:
-                    self.avg_norm_WA_dict[baseName]["max"] = max(avg_totals)
-                    self.avg_norm_WA_dict[baseName]["min"] = min(avg_totals)
+                    self.avg_norm_WA_dict[baseName]["max"] = _max
+                    self.avg_norm_WA_dict[baseName]["min"] = _min
+                    self.avg_norm_WA_dict[baseName]["min_probe"] = min_probe
+                    self.avg_norm_WA_dict[baseName]["max_probe"] = max_probe
+
                 else:
                     self.avg_norm_WA_dict[baseName] = {
-                        "max": max(avg_totals), "min": min(avg_totals)}
+                        "max": _max, "min": _min, "min_probe": min_probe, "max_probe": max_probe}
             else:
                 if special is not None:
                     self.avg_norm_WA_dict[baseName]["max"] = "N/A"
                     self.avg_norm_WA_dict[baseName]["min"] = "N/A"
+                    self.avg_norm_WA_dict[baseName]["min_probe"] = "N/A"
+                    self.avg_norm_WA_dict[baseName]["max_probe"] = "N/A"
                 else:
-                    self.avg_norm_WA_dict[baseName] = {"max": "N/A", "min": "N/A", }
+                    self.avg_norm_WA_dict[baseName] = {
+                        "max": "N/A", "min": "N/A", "min_probe": "N/A", "max_probe": "N/A"}
+
+            min_probe, max_probe = self.avg_norm_WA_dict[baseName][
+                "min_probe"], self.avg_norm_WA_dict[baseName]["max_probe"]
 
     # This will calculate the normalization of the average norms
 
@@ -188,9 +213,34 @@ class AnalyzeFiles(object):
     # Compute the propigation of error
     # variables:
     # avg_norm_WA => avg_norm_WA_dict
-    # max and min => ????
-    def error_propigation(self):
-        pass
+    # max and min =>
+    def error_propigation(self, gene):
+        baseName = gene.split("-")[0]
+        min_probe = self.avg_norm_WA_dict[baseName]["min_probe"]
+        max_probe = self.avg_norm_WA_dict[baseName]["max_probe"]
+        norm_avg = self.avg_norm_WA_dict[gene]["norm_average"]
+        norm_std = self.avg_norm_WA_dict[gene]["norm_std"]
+        _max, _min = self.avg_norm_WA_dict[baseName]["max"], self.avg_norm_WA_dict[baseName]["min"]
+        # if any of these two values dont exist then it is not applicaple
+        if min_probe in self.errors or max_probe in self.errors:
+            if min_probe in self.errors:
+                return "MIN"
+            return "MAX"
+        min_std, max_std = self.avg_norm_WA_dict[min_probe][
+            "norm_std"], self.avg_norm_WA_dict[max_probe]["norm_std"]
+        # Error check for errors.
+        vals = [norm_avg, norm_std, _max, _min, min_std, max_std]
+        for val in vals:
+            if val in self.errors:
+                return "VAL ERROR, {} , norm_avg: {} ,norm_std: {}, Max: {}, Min: {}, min_std: {}, max_std: {}".format(gene, vals[0], vals[1], vals[2], vals[3], vals[4], vals[5])
+        if (_max - _min) == 0 or norm_avg == 0 or max_std == 0:
+            return np.nan
+        error = (np.power((norm_avg / (_max - _min)), 2) * np.power(norm_std / norm_avg, 2))
+        error += ((np.power(max_std, 2) + np.power(min_std, 2)) / np.power(_max - _min, 2))
+        error += (np.power(_min / (_max - _min), 2) * np.power(min_std / max_std, 2))
+        error += ((np.power(min_std, 2) + np.power(max_std, 2)) / np.power(_max - _min, 2))
+        self.numErrors += 1
+        return np.sqrt(error)
 
     # we clculate the normilized weighted average for use in the CSV
     def normalized_adj_WA(self, adj_WA, gene, sample, merged):
@@ -383,7 +433,7 @@ class AnalyzeFiles(object):
                 header += ",".join(["sample{} {}".format(col, i) for i in analysis_cols])
                 header += ","
             # print(header)
-            header += "normalized adj WA average, normalized adj WA STD, norm avg norm access,"
+            header += "normalized adj WA average, normalized adj WA STD, norm avg norm access, error propogation,"
             header = header[:-1]
 
             header += "\n"
@@ -407,17 +457,18 @@ class AnalyzeFiles(object):
                 normalized_WA_avg, normalized_WA_std = self.avg_norm_WA_dict[
                     gene]["norm_average"], self.avg_norm_WA_dict[gene]["norm_std"]
                 normalized_average_norm = self.norm_average_norm(gene)
+                error_propigation = self.error_propigation(gene)
                 # only time the two were not equal was when they were both nan's
                 # if self.avg_norm_WA_dict[gene]["norm_average"] != normalized_WA_avg or self.avg_norm_WA_dict[gene]["norm_std"] != normalized_WA_std:
                 #     if (np.isnan(self.avg_norm_WA_dict[gene]["norm_std"]) and np.isnan(normalized_WA_std)):
                 #         continue
                 #     else:
                 #         print(False)
-                toWrite += ",{},{},{}".format(normalized_WA_avg,
-                                              normalized_WA_std, normalized_average_norm)
-
+                toWrite += ",{},{},{},{}".format(normalized_WA_avg,
+                                                 normalized_WA_std, normalized_average_norm, error_propigation)
                 toWrite += "\n"
                 csvFile.write(toWrite)
+        print(self.numErrors)
 
 
 def main():
