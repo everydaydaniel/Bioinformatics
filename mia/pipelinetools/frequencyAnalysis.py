@@ -142,13 +142,15 @@ class AnalyzeFiles(object):
             for probe in self.geneDict[baseName]:
                 values = []
                 for sample in order:
+                    if probe == "Probe03-1":
+                        print(self.normalized_adj_WA[sample][probe]['normalized_WA'])
                     value = self.normalized_adj_WA[sample][probe]['normalized_WA']
                     if isinstance(value, str) or np.isnan(value):
                         continue
                     values.append(value)
                 if len(values) == 0:
                     self.avg_norm_WA_dict[probe] = {"norm_average": np.nan, "norm_std": np.nan}
-                    # avg_totals.append(0)
+
                 else:
                     # if the length of values is equal to 1 then numpy will throw a runttime warning
                     # because the value is nan. check length first to get rid of error
@@ -200,14 +202,29 @@ class AnalyzeFiles(object):
         current = self.avg_norm_WA_dict[gene]["norm_average"]
         baseName = gene.split("-")[0]
         _min, _max = self.avg_norm_WA_dict[baseName]["min"], self.avg_norm_WA_dict[baseName]["max"]
+        error = "no error"
+        # if current in self.errors:
+        # print(1, end=" ")
         if _min == np.nan or _max == np.nan:
+            error = "min max is nan"
+            # print(gene + " " + error + " ")
             return np.nan
         if _min == 0 and _max == 0:
+            error = "min max is 0"
+            # print(gene + " " + error + " ")
             return np.nan
         if _min in self.errors or _max in self.errors:
+            error = "min max is errored"
+            # print(gene + " " + error + " ")
             return np.nan
         if (current - _min == 0):
             return 0
+
+        # val = (current - _min) / (_max - _min)
+        # if val is np.nan:
+        # print("IS NAN")
+        # print("{}: {} - {}/ {} - {} = {}  type = {}".format(gene, current,
+        # _min, _max, _min, (current - _min) / (_max - _min), type(np.nan)))
         return (current - _min) / (_max - _min)
 
     # Compute the propigation of error
@@ -424,9 +441,10 @@ class AnalyzeFiles(object):
         merged, order = self.merge()
         print("data merged.")
         print("Analyzing data")
+
         self.set_gene_dict(self.geneNames)  # easy access to basenames and samples
         # choose between computing norms on adj weighted average ad weighted average here
-        self.set_normalized_WA(merged, key='adj_weighted_average')
+        self.set_normalized_WA(merged, key='weighted_average')
         analysis_cols = ["W/A", "Std dev", "Num reads", "Adj W/A", "Norm adj W/A"]
         num_samples = len(order)
         with open("{}.csv".format(self.outputName), "w") as csvFile:
