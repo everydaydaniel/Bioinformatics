@@ -89,11 +89,11 @@ class AnalyzeFiles(object):
     # compute averages for error propogation.
     # access => dict[sample][gene]["normalized_WA"]
     # we are going ot use this to gather information for later statistics
-    def set_normalized_WA(self, merged):
+    def set_normalized_WA(self, merged, key='adj_weighted_average'):
         for gene in merged:
             for sample in merged[gene]:
-                adj_WA = merged[gene][sample]['adj_weighted_average']
-                _min, _max = self.get_min_max(gene, sample, merged)
+                adj_WA = merged[gene][sample][key]
+                _min, _max = self.get_min_max(gene, sample, merged, key)
                 norm_wa = None
                 if adj_WA in self.errors:
                     norm_wa = "N/A"
@@ -263,10 +263,10 @@ class AnalyzeFiles(object):
 
     # set the min max for a group of sRNA
     # desired structure: min_max[sample][gene] = {min: val, max: val}
-    def set_min_max(self, gene, sample, merged):
+    def set_min_max(self, gene, sample, merged, key='adj_weighted_average'):
         values = []
         for sRNA in self.sRNAGroups[gene]:
-            values.append(merged[sRNA][sample]['adj_weighted_average'])
+            values.append(merged[sRNA][sample][key])
         # sift out non numbers
         values = [i for i in values if not isinstance(i, str)]
         if len(values) < 2:
@@ -289,12 +289,12 @@ class AnalyzeFiles(object):
     # retrieve the min and max of a given sample
     # input: dataset[gene][sample_number]
     # output: min_max[sample][gene][min] and min_max[gene][sample][max]
-    def get_min_max(self, gene, sample_number, merged):
+    def get_min_max(self, gene, sample_number, merged, key='adj_weighted_average'):
         gene = gene.split("-")[0]
         if sample_number not in self.min_max:
             self.min_max[sample_number] = {}
         if gene not in self.min_max[sample_number]:  # only need to do this once per sRNA
-            self.set_min_max(gene, sample_number, merged)
+            self.set_min_max(gene, sample_number, merged, key)
             # after this step that dictionart Key value pair will exist
         return (self.min_max[sample_number][gene]["min"], self.min_max[sample_number][gene]["max"])
 
@@ -423,8 +423,10 @@ class AnalyzeFiles(object):
         self.geneNames = self.genome_parse()  # has sRNA in order from reference genome
         merged, order = self.merge()
         print("data merged.")
+        print("Analyzing data")
         self.set_gene_dict(self.geneNames)  # easy access to basenames and samples
-        self.set_normalized_WA(merged)
+        # choose between computing norms on adj weighted average ad weighted average here
+        self.set_normalized_WA(merged, key='adj_weighted_average')
         analysis_cols = ["W/A", "Std dev", "Num reads", "Adj W/A", "Norm adj W/A"]
         num_samples = len(order)
         with open("{}.csv".format(self.outputName), "w") as csvFile:
@@ -435,7 +437,6 @@ class AnalyzeFiles(object):
             # print(header)
             header += "normalized adj WA average, normalized adj WA STD, norm avg norm access, error propogation,"
             header = header[:-1]
-
             header += "\n"
             csvFile.write(header)
             for gene in self.geneNames:
@@ -452,7 +453,7 @@ class AnalyzeFiles(object):
                     toWrite += ",{},{},{},{},{}".format(weighted_average, standard_deviation,
                                                         num_reads, adj_weighted_average, normalized_WA)
                 # end of sample loop, use this section to do analysis across all replicates
-                # set the dict for analysis only runs once ber basegene name
+                # set the dict for analysis only runs once per basegene name
                 self.set_avg_norm_WA(order, gene)
                 normalized_WA_avg, normalized_WA_std = self.avg_norm_WA_dict[
                     gene]["norm_average"], self.avg_norm_WA_dict[gene]["norm_std"]
